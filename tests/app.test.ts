@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import type { SpawnSyncReturns } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { request as httpRequest } from 'node:http';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -20,6 +21,18 @@ async function request(url: string, options?: RequestInit): Promise<Response> {
   return fetch(url, { ...options, headers, signal: AbortSignal.timeout(5000) });
 }
 
+async function foreignHostStatus(base: string): Promise<number> {
+  const target = new URL('/api/profile', base);
+  return new Promise((resolve, reject) => {
+    const outgoing = httpRequest(target, { headers: { Host: `attacker.example:${target.port}` } }, (response) => {
+      response.resume();
+      resolve(response.statusCode ?? 0);
+    });
+    outgoing.once('error', reject);
+    outgoing.end();
+  });
+}
+
 async function availablePort(): Promise<number> {
   return new Promise((resolve, reject) => {
     const server = createServer();
@@ -35,7 +48,7 @@ async function availablePort(): Promise<number> {
   });
 }
 
-void test('local app preserves data, reuses its instance, denies writes, and checks process identity', async () => {
+void test('local app preserves data, reuses its instance, denies writes and foreign hosts, and checks process identity', async () => {
   const workspace = mkdtempSync(join(tmpdir(), 'coresearch app '));
   const port = await availablePort();
   function run(command: string, input?: string): SpawnSyncReturns<string> {
@@ -68,6 +81,8 @@ void test('local app preserves data, reuses its instance, denies writes, and che
     assert.deepEqual(profileSchema.parse(await response.json()), saved);
     assert.equal((await request(`${base}/api/profile`, { method: 'POST', body: '{}' })).status, 405);
     assert.equal((await request(`${base}/private/coresearch.sqlite`)).status, 404);
+    // DNS rebinding: a foreign hostname reaching the loopback server must not read or write data.
+    assert.equal(await foreignHostStatus(base), 403);
     // A wrong PID must never be used to stop a different process.
     const state = stateSchema.parse(JSON.parse(originalState));
     writeFileSync(statePath, JSON.stringify({ ...state, pid: process.pid }));

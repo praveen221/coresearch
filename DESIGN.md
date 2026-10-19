@@ -16,7 +16,7 @@ Reference: [OpenCode analysis](https://getdesign.md/opencode.ai/design-md), retr
 ## Initial interface
 
 - Left navigation: Profile, then expandable Workspace with an empty lab list.
-- Main view: profile information; updates come from chat. No in-app chat or editing form.
+- Main view: profile information, editable in place; updates from chat also appear. No in-app chat.
 - Unknown fields say “Not provided.” Funding remains unknown until stated.
 - Show saved-update time and a clear message when live refresh fails. Never display sample data as a real profile.
 - Narrow screens stack navigation above content; long entries wrap without horizontal scrolling.

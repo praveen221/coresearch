@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { test } from 'node:test';
-import { getProfile, updateProfile } from '../src/lib/profile.ts';
+import { getProfile, ProfileConflictError, updateProfile } from '../src/lib/profile.ts';
 import { workspacePath } from '../src/lib/database.ts';
 
 function fixture(run: (workspace: string) => void): void {
@@ -96,4 +96,15 @@ void test('refuses unknown databases and ambiguous relative workspace paths', ()
     assert.throws(() => getProfile(workspace), /unknown database/);
   });
   assert.throws(() => workspacePath('./private'), /absolute path/);
+});
+
+void test('an update based on a stale profile is refused without changing data', () => {
+  fixture((workspace) => {
+    const loaded = updateProfile({ name: 'Loaded' }, workspace);
+    const elsewhere = updateProfile({ background: 'Saved by the agent' }, workspace);
+    assert.throws(() => updateProfile({ name: 'Stale edit' }, workspace, { updatedAt: loaded.updatedAt }),
+      ProfileConflictError);
+    assert.deepEqual(getProfile(workspace), elsewhere);
+    assert.equal(updateProfile({ name: 'Fresh edit' }, workspace, { updatedAt: elsewhere.updatedAt }).name, 'Fresh edit');
+  });
 });

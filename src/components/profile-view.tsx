@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import type { ReactElement, ReactNode } from 'react';
-import { Box, Flex, Heading, Text, Separator } from '@radix-ui/themes';
+import { Box, Button, Flex, Heading, Text, Separator } from '@radix-ui/themes';
 import { profileSchema } from '../lib/profile-schema.ts';
 import type { Profile } from '../lib/profile-schema.ts';
+import { ProfileForm } from './profile-form.tsx';
 import styles from './profile-view.module.css';
 
 function Field({ label, children }: Readonly<{ label: string; children: ReactNode }>): ReactElement {
@@ -21,6 +22,8 @@ function ItemList({ items }: Readonly<{ items: readonly string[] }>): ReactEleme
 export function ProfileView({ initialProfile }: Readonly<{ initialProfile: Profile }>): ReactElement {
   const [profile, setProfile] = useState(initialProfile);
   const [refreshFailed, setRefreshFailed] = useState(false);
+  // Snapshot taken when editing starts; live refresh keeps updating `profile` for conflict warnings.
+  const [editing, setEditing] = useState<Profile | null>(null);
   useEffect(() => {
     const controller = new AbortController();
     let pending = false;
@@ -71,7 +74,13 @@ export function ProfileView({ initialProfile }: Readonly<{ initialProfile: Profi
         <Box className={styles['content']}>
           <Text as="p" size="2" color="gray">[ Your starting point ]</Text>
           <Heading as="h1" size="7" className={styles['title']}>Your profile</Heading>
-          <Text as="p" color="gray">Tell your agent about yourself. Your saved details appear here.</Text>
+          <Flex justify="between" align="start" gap="4" wrap="wrap">
+            <Text as="p" color="gray">Tell your agent about yourself, or edit the details here.</Text>
+            {editing === null ? <Button variant="soft" color="gray" onClick={() => { setEditing(profile); }}>Edit profile</Button> : null}
+          </Flex>
+          {editing !== null ? <ProfileForm initialBase={editing} latest={profile}
+            onSaved={(saved) => { setProfile(saved); setEditing(null); }}
+            onCancel={() => { setEditing(null); }} /> : <>
           <section aria-labelledby="about-heading" className={styles['section']}>
             <Heading as="h2" size="3" id="about-heading">About you</Heading>
             <dl className={styles['fields']}>
@@ -94,6 +103,7 @@ export function ProfileView({ initialProfile }: Readonly<{ initialProfile: Profi
             <Heading as="h2" size="3" id="constraints-heading">Practical constraints</Heading>
             <Box mt="4"><ItemList items={profile.constraints} /></Box>
           </section>
+          </>}
           <Separator size="4" />
           <Flex direction="column" gap="2" py="5">
             <Text size="2" color="gray">{profile.updatedAt === null ? 'No profile information saved yet.' : `Last saved: ${new Date(profile.updatedAt).toUTCString()}`}</Text>

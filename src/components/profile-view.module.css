@@ -31,3 +31,9 @@
   .content { padding: 32px 24px 16px; }
   .field { grid-template-columns: minmax(0, 1fr); gap: 4px; }
 }
+.label { display: flex; flex-direction: column; gap: 4px; color: var(--cr-muted); }
+.grow { flex: 1; min-width: 0; }
+.editableItem { display: flex; justify-content: space-between; align-items: start; gap: 16px; }
+.editableItem::before { flex: none; }
+.editableItem span { flex: 1; min-width: 0; }
+.srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

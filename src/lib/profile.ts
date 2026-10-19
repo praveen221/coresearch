@@ -53,12 +53,19 @@ function updateItems(db: DatabaseSync, table: 'interests' | 'constraints', chang
   }
 }
 
-export function updateProfile(input: unknown, workspace = workspacePath()): Profile {
+export class ProfileConflictError extends Error {
+  constructor() { super('The profile changed after it was loaded.'); }
+}
+
+// `expected` rejects the update when another writer (chat or another tab) saved first.
+export function updateProfile(input: unknown, workspace = workspacePath(),
+  expected?: { updatedAt: string | null }): Profile {
   const patch = profilePatchSchema.parse(input);
   return withDatabase(workspace, (db) => {
     db.exec('BEGIN IMMEDIATE');
     try {
       const current = read(db);
+      if (expected !== undefined && expected.updatedAt !== current.updatedAt) throw new ProfileConflictError();
       const needsFunding = patch.needsFunding === undefined ? current.needsFunding : patch.needsFunding;
       db.prepare(`UPDATE profile SET name = ?, background = ?, needs_funding = ?,
         funding_notes = ?, updated_at = ? WHERE id = 1`).run(

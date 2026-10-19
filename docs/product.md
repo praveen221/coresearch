@@ -14,7 +14,7 @@ Start with a known lab or supervisor and combine student, professor, and lab con
 
 ## Scope
 
-A portable Agent Skill operating a local Next.js application and SQLite database. No deployment. Information comes through chat; the UI displays it. Navigation starts with Profile and Workspace, with labs beneath Workspace. A lab will open on its latest progress, with a paper-evidence investigation board. Lab discovery comes later.
+A portable Agent Skill operating a local Next.js application and SQLite database. No deployment. Information comes through chat or the UI; both use the same server-side functions. Navigation starts with Profile and Workspace, with labs beneath Workspace. A lab will open on its latest progress, with a paper-evidence investigation board. Lab discovery comes later.
 
 The harness researches the lab, reads papers, identifies promising directions, and repeatedly challenges their novelty. It asks the student for input throughout. Exact paper passages support its claims.
 

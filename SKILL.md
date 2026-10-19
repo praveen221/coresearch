@@ -1,6 +1,6 @@
 ---
 name: coresearch
-description: Set up a local Coresearch profile workspace and save student information from chat into SQLite, with a read-only local UI. Use for Coresearch setup, profile updates, and reopening the workspace; research and lab processing are not implemented yet.
+description: Set up a local Coresearch profile workspace and save student information from chat into SQLite, with a local UI where the student can also edit it. Use for Coresearch setup, profile updates, and reopening the workspace; research and lab processing are not implemented yet.
 ---
 
 # Coresearch
@@ -23,6 +23,7 @@ Run `npm run coresearch -- profile:schema` for the accepted update fields. Suppl
 - Save only explicitly supplied information. Unknown fields stay unknown. Ask when a statement is ambiguous.
 - Scalar updates replace that field; omitted fields are preserved. Add/remove interests and constraints explicitly; do not replace earlier items implicitly.
 - Use these commands, not ad hoc SQL. Acknowledge a save only when the command succeeds. On failure, report the error and preserve the intended update for correction.
+- The student may edit the profile in the UI at any time; run `profile:get` before relying on saved values.
 - Keep conversation concise. Do not invent labs, start research, contact anyone, or regenerate the UI during profile updates.
 
 ## Server control
