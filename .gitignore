@@ -1,0 +1,21 @@
+# Private student and application material
+/private/
+
+# Downloaded sources and generated research artifacts
+/sources/
+/runs/
+/.cache/
+
+# Credentials and local settings
+.env
+.env.*
+!.env.example
+
+# Python development artifacts
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# OS artifacts
+.DS_Store
