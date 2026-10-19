@@ -3,8 +3,6 @@
 import { useEffect, useState } from 'react';
 import type { z } from 'zod';
 
-// Polls a read-only endpoint while the page is visible, so saves from chat appear without reloading.
-// `schema` must be a module-level constant; a new object per render would restart polling.
 export function useLive<T>(url: string, schema: z.ZodType<T>, initial: T): {
   value: T; setValue: (value: T) => void; failed: boolean;
 } {

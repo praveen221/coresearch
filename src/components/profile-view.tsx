@@ -20,7 +20,6 @@ export function ProfileView({ initialProfile, initialTargets }: Readonly<{
   initialProfile: Profile; initialTargets: Target[];
 }>): ReactElement {
   const { value: profile, setValue: setProfile, failed: refreshFailed } = useLive('/api/profile', profileSchema, initialProfile);
-  // Snapshot taken when editing starts; live refresh keeps updating `profile` for conflict warnings.
   const [editing, setEditing] = useState<Profile | null>(null);
 
   const funding = profile.needsFunding === null ? null : profile.needsFunding ? 'Funding needed' : 'Funding not needed';

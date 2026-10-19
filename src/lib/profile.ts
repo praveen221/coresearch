@@ -35,7 +35,6 @@ export function getProfile(workspace = workspacePath()): Profile {
 
 function updateItems(db: DatabaseSync, table: 'interests' | 'constraints', changes: ProfilePatch['interests']): void {
   if (changes === undefined) return;
-  // Table names are restricted to this internal union, never user input.
   for (const description of changes.remove ?? []) {
     db.prepare(`DELETE FROM ${table} WHERE description = ?`).run(description);
   }
@@ -44,7 +43,6 @@ function updateItems(db: DatabaseSync, table: 'interests' | 'constraints', chang
   }
 }
 
-// `expected` rejects the update when another writer (chat or another tab) saved first.
 export function updateProfile(input: unknown, workspace = workspacePath(),
   expected?: { updatedAt: string | null }): Profile {
   const patch = profilePatchSchema.parse(input);

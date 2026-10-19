@@ -1,6 +1,6 @@
 ---
 name: coresearch
-description: Set up a local Coresearch workspace and save the student's profile and target professors or labs from chat into SQLite, with a local UI where the student can also edit them. Use for Coresearch setup, profile and target updates, and reopening the workspace; lab research is not implemented yet.
+description: Help a prospective PhD student find a defensible research direction with a specific professor. Sets up a local workspace and app, saves the profile, ideas, and target professors, reads the lab's papers, and runs evidence-backed research tracks with verified quotations. Use for Coresearch setup, updates, profile, ideas, targets, and research.
 ---
 
 # Coresearch
@@ -46,6 +46,10 @@ A target is one specific professor. When the student names a lab, professor, or 
 5. You may search for missing links, but save one only after the student confirms it belongs to this professor.
 
 Run `npm run coresearch -- target:schema` for accepted fields. Use `target:add` (JSON on stdin), `target:list`, `target:get --id <id>`, `target:update --id <id>` (JSON on stdin), and `target:remove --id <id>`. Remove a target only when the student asks. The student may also add or edit targets in the UI; run `target:get` before relying on saved values.
+
+## Research
+
+Run `npm run coresearch -- guide` and follow it. It lists the rules and every step, with the commands to use.
 
 ## Server control
 

@@ -8,6 +8,9 @@ import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { z } from 'zod';
 import { currentRevision, pullLatest } from '../src/lib/installation.ts';
+import { coreCommands } from './commands.ts';
+import { guide } from './guide.ts';
+import { isResearchCommand, researchCommands, researchOptions, runResearch } from './research-commands.ts';
 import { chooseWorkspace, currentWorkspace, rememberWorkspace, rememberedWorkspace } from '../src/lib/workspace.ts';
 import { getProfile, updateProfile } from '../src/lib/profile.ts';
 import { profilePatchSchema } from '../src/lib/profile-schema.ts';
@@ -53,7 +56,6 @@ async function assertFreePort(port: number): Promise<void> {
 async function start(workspace: string, port: number): Promise<unknown> {
   mkdirSync(workspace, { recursive: true, mode: 0o700 });
   const lock = join(workspace, 'start.lock');
-  // Exclusive lock prevents simultaneous invocations from launching duplicate servers.
   mkdirSync(lock);
   try {
     const previous = loadState(workspace);
@@ -114,11 +116,9 @@ function run(description: string, executable: string, args: string[], capture = 
   if (result.error !== undefined || result.status !== 0) throw new Error(`${description} failed. Run update again.`);
   return capture ? result.stdout : '';
 }
-// Revision whose dependencies and build completed, so an interrupted update is retried rather than skipped.
 const installedRevision = join(packageRoot, '.next', 'coresearch-revision');
 const settings = join(packageRoot, '.workspace');
 async function update(workspace: string, requestedPort: number | undefined): Promise<unknown> {
-  // Pull while the app runs; stop it only once new code has arrived.
   const { from, to } = pullLatest(packageRoot);
   const installed = existsSync(installedRevision) ? readFileSync(installedRevision, 'utf8').trim() : null;
   if (from === to && installed === to) return { updated: false, revision: to.slice(0, 7), workspace };
@@ -127,7 +127,6 @@ async function update(workspace: string, requestedPort: number | undefined): Pro
   const npmCli = process.env['npm_execpath'];
   if (npmCli === undefined) run('Dependency installation', 'npm', ['ci']);
   else run('Dependency installation', process.execPath, [npmCli, 'ci']);
-  // The pulled code may have changed this script, so the new version performs setup and start.
   const cli = ['--import', 'tsx', 'scripts/coresearch.ts'];
   run('Setup', process.execPath, [...cli, 'setup', '--workspace', workspace]);
   const started: unknown = JSON.parse(run('Start', process.execPath, [...cli, 'start', '--workspace', workspace, '--port', String(port)], true));
@@ -147,14 +146,14 @@ async function inputFromStdin(): Promise<unknown> {
 }
 async function main(): Promise<unknown> {
   const args = parseArgs({
-    options: { workspace: { type: 'string' }, port: { type: 'string' }, id: { type: 'string' } },
+    options: { workspace: { type: 'string' }, port: { type: 'string' }, id: { type: 'string' }, ...researchOptions },
     allowPositionals: true,
     strict: true,
   });
-  const command = z.enum(['setup', 'workspace', 'start', 'status', 'stop', 'update', 'profile:get', 'profile:update', 'profile:schema',
-    'target:list', 'target:get', 'target:add', 'target:update', 'target:remove', 'target:schema']).parse(args.positionals[0]);
+  const command = z.enum([...coreCommands, ...researchCommands]).parse(args.positionals[0]);
   if (args.positionals.length !== 1) throw new Error('Provide exactly one command.');
   if (command === 'workspace') return { workspace: rememberedWorkspace(settings) };
+  if (command === 'guide') return guide();
   const workspace = command === 'setup'
     ? chooseWorkspace(settings, args.values.workspace)
     : currentWorkspace(settings, args.values.workspace);
@@ -163,12 +162,12 @@ async function main(): Promise<unknown> {
     if (args.values.id === undefined) throw new Error('Provide --id.');
     return targetIdSchema.parse(args.values.id);
   }
+  if (isResearchCommand(command)) return runResearch(command, workspace, args.values, inputFromStdin);
   switch (command) {
     case 'setup': {
       const existing = loadState(workspace);
       if (existing !== null && await healthy(existing)) throw new Error('Stop the app before rebuilding it.');
       getProfile(workspace);
-      // Build logs go to stderr so stdout stays a single JSON result.
       const build = spawnSync(process.execPath, [nextBinary, 'build'], {
         cwd: packageRoot,
         stdio: ['ignore', 2, 2],

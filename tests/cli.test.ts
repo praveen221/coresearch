@@ -63,3 +63,25 @@ void test('CLI adds, reads, updates, and removes targets, and prints both target
     assert.equal(run(['target:remove', '--id', id]).status, 1);
   } finally { rmSync(workspace, { recursive: true, force: true }); }
 });
+
+void test('CLI saves ideas, prints the research guide and schemas, and reports research errors', () => {
+  const workspace = mkdtempSync(join(tmpdir(), 'coresearch-cli-research-'));
+  function run(args: string[], input?: string): SpawnSyncReturns<string> {
+    return spawnSync(process.execPath, ['--import', 'tsx', 'scripts/coresearch.ts', ...args, '--workspace', workspace], {
+      cwd: root, encoding: 'utf8', ...(input === undefined ? {} : { input }),
+    });
+  }
+  try {
+    const idea = run(['idea:add'], JSON.stringify({ kind: 'question', text: 'Does warmth make wrong advice persuasive?' }));
+    assert.equal(idea.status, 0, idea.stderr);
+    assert.equal(z.array(z.unknown()).parse(JSON.parse(run(['idea:list']).stdout)).length, 1);
+    const guide = z.object({ rules: z.array(z.string()), steps: z.array(z.object({ step: z.string(), do: z.array(z.string()) })) })
+      .parse(JSON.parse(run(['guide']).stdout));
+    assert.ok(guide.steps.length >= 8);
+    const schemas = z.record(z.string(), z.unknown()).parse(JSON.parse(run(['research:schema']).stdout));
+    assert.deepEqual(Object.keys(schemas), ['idea:add', 'source:status', 'clip:add', 'track:add', 'track:update', 'track:link', 'track:log']);
+    assert.match(run(['track:add'], JSON.stringify({ targetId: 7, origin: 'agent', title: 'T', question: 'Q?' })).stderr, /No target with id 7/);
+    assert.match(run(['source:get', '--id', '3']).stderr, /No source with id 3/);
+    assert.match(run(['papers:discover', '--target', '1']).stderr, /Provide --author/);
+  } finally { rmSync(workspace, { recursive: true, force: true }); }
+});

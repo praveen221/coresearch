@@ -22,7 +22,6 @@ function LinkEditor({ links, onChange }: Readonly<{ links: TargetDraft['links'];
   function add(): void {
     const parsed = linkUrl.safeParse(url.trim());
     if (!parsed.success) { setError(parsed.error.issues[0]?.message ?? 'Invalid address.'); return; }
-    // Re-adding a saved address changes its kind, matching the server.
     onChange([...links.filter((link) => link.url !== parsed.data), { kind, url: parsed.data }]);
     setUrl('');
     setError(null);
@@ -130,7 +129,6 @@ export function TargetForm({ initialBase, latest, onSaved, onCancel }: Readonly<
       {errors.map((error) => <Text key={error} size="2">[!] {error}</Text>)}
     </Flex>
     <Flex gap="3" wrap="wrap">
-      {/* Distinct keys stop React reusing one element: a click on "keep" would otherwise submit. */}
       {stale
         ? <Button key="keep" type="button" onClick={keepEdits} disabled={pending}>Keep my edits on the latest target</Button>
         : <Button key="save" type="submit" disabled={!changed || pending}>{pending ? 'Saving…' : base === null ? 'Add target' : 'Save'}</Button>}

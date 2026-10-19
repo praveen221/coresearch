@@ -8,6 +8,9 @@ import { linkKinds, targetListSchema } from '../lib/target-schema.ts';
 import type { LinkKind, Target } from '../lib/target-schema.ts';
 import { Field, Shell, Value, targetName } from './shell.tsx';
 import { TargetForm, linkLabels } from './target-form.tsx';
+import { Library, Requirements, TrackList } from './research-panels.tsx';
+import { researchSchema } from '../lib/research-schema.ts';
+import type { Research } from '../lib/research-schema.ts';
 import { useLive } from './use-live.ts';
 import styles from './ui.module.css';
 
@@ -16,7 +19,7 @@ function recommendedKinds(target: Target): LinkKind[] {
 }
 
 export function NewTargetView({ initialTargets }: Readonly<{ initialTargets: Target[] }>): ReactElement {
-  return <Shell current="new" initialTargets={initialTargets} section="Workspace" step="02 / Target">
+  return <Shell current="new" initialTargets={initialTargets} section="Workspace" step="03 / Target">
     <Text as="p" size="2" color="gray">[ New target ]</Text>
     <Heading as="h1" size="7" className={styles['title']}>Add a target</Heading>
     <Text as="p" color="gray">A target is one professor you want to work with. You can also tell your agent instead.</Text>
@@ -26,10 +29,12 @@ export function NewTargetView({ initialTargets }: Readonly<{ initialTargets: Tar
   </Shell>;
 }
 
-export function TargetView({ initialTargets, id }: Readonly<{ initialTargets: Target[]; id: number }>): ReactElement {
+export function TargetView({ initialTargets, initialResearch, id }: Readonly<{
+  initialTargets: Target[]; initialResearch: Research; id: number;
+}>): ReactElement {
   const { value: targets, setValue: setTargets, failed } = useLive('/api/targets', targetListSchema, initialTargets);
+  const { value: research } = useLive(`/api/targets/${String(id)}/research`, researchSchema, initialResearch);
   const target = targets.find((item) => item.id === id) ?? null;
-  // Snapshot taken when editing starts; live refresh keeps updating `target` for conflict warnings.
   const [editing, setEditing] = useState<Target | null>(null);
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [removeError, setRemoveError] = useState<string | null>(null);
@@ -44,15 +49,16 @@ export function TargetView({ initialTargets, id }: Readonly<{ initialTargets: Ta
   }
 
   if (target === null && editing === null) {
-    return <Shell current={id} initialTargets={initialTargets} section="Workspace" step="02 / Target">
+    return <Shell current={id} initialTargets={initialTargets} section="Workspace" step="03 / Target">
       <Heading as="h1" size="7" className={styles['title']}>Target removed</Heading>
       <Text as="p" color="gray">This target is no longer saved. <a href="/">Return to your profile.</a></Text>
     </Shell>;
   }
 
-  return <Shell current={id} initialTargets={initialTargets} section="Workspace" step="02 / Target">
+  return <Shell current={id} initialTargets={initialTargets} section="Workspace" step="03 / Target" wide>
     <Text as="p" size="2" color="gray">[ Target ]</Text>
     <Heading as="h1" size="7" className={styles['title']}>{target === null ? 'Target' : targetName(target)}</Heading>
+    <div className={styles['targetLayout']}><div className={styles['targetMain']}>
     {editing !== null ? <TargetForm initialBase={editing} latest={target}
       onSaved={(saved) => { setTargets(targets.map((item) => item.id === saved.id ? saved : item)); setEditing(null); }}
       onCancel={() => { setEditing(null); }} /> : target === null ? null : <>
@@ -81,6 +87,8 @@ export function TargetView({ initialTargets, id }: Readonly<{ initialTargets: Ta
         {recommendedKinds(target).filter((kind) => !target.links.some((link) => link.kind === kind)).map((kind) =>
           <Text key={kind} as="p" size="2" color="gray" mt="2">[ ] {linkLabels[kind]} not added yet</Text>)}
       </section>
+      <Requirements research={research} />
+      <Library research={research} />
       <section aria-labelledby="remove-heading" className={styles['section']}>
         <Heading as="h2" size="3" id="remove-heading">Remove</Heading>
         <Flex gap="3" mt="4" wrap="wrap" align="center">
@@ -93,6 +101,7 @@ export function TargetView({ initialTargets, id }: Readonly<{ initialTargets: Ta
         {removeError === null ? null : <Text as="p" size="2" mt="2" role="alert">[!] {removeError}</Text>}
       </section>
     </>}
+    </div><TrackList research={research} /></div>
     <Separator size="4" mt="6" />
     <Flex py="5" role="status">
       <Text size="2" color="gray">

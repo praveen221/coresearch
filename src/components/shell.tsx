@@ -19,13 +19,15 @@ export function Value({ value }: Readonly<{ value: string | null }>): ReactEleme
   return value === null ? <Text color="gray">Not provided</Text> : <Text>{value}</Text>;
 }
 
-export function Shell({ current, initialTargets, section, step, children }: Readonly<{
-  current: 'profile' | 'new' | number; initialTargets: Target[]; section: string; step: string; children: ReactNode;
+export function Shell({ current, initialTargets, section, step, wide = false, children }: Readonly<{
+  current: 'profile' | 'ideas' | 'new' | number; initialTargets: Target[]; section: string; step: string;
+  wide?: boolean; children: ReactNode;
 }>): ReactElement {
   const { value: targets } = useLive('/api/targets', targetListSchema, initialTargets);
-  function link(href: string, selected: boolean, label: string): ReactElement {
+  function link(href: string, selected: boolean, label: string, detail: string | null = null): ReactElement {
     return <a href={href} aria-current={selected ? 'page' : undefined} className={selected ? styles['selected'] : styles['navLink']}>
-      <span aria-hidden="true">{selected ? '[·]' : '[ ]'}</span> {label}
+      <span aria-hidden="true" className={styles['navMarker']}>{selected ? '[·]' : '[ ]'}</span>
+      <span className={styles['navLabel']}>{label}{detail === null ? null : <Text size="1" color="gray">{detail}</Text>}</span>
     </a>;
   }
   return (
@@ -35,10 +37,12 @@ export function Shell({ current, initialTargets, section, step, children }: Read
         <Text size="5" weight="bold" className={styles['brand']}>coresearch<span aria-hidden="true">_</span></Text>
         <nav aria-label="Main navigation" className={styles['navigation']}>
           {link('/', current === 'profile', 'Profile')}
+          {link('/ideas', current === 'ideas', 'Ideas')}
           <details open className={styles['workspace']}>
             <summary>Workspace</summary>
             <ul className={styles['targets']}>
-              {targets.map((target) => <li key={target.id}>{link(`/targets/${String(target.id)}`, current === target.id, targetName(target))}</li>)}
+              {targets.map((target) => <li key={target.id}>{link(`/targets/${String(target.id)}`, current === target.id, target.professor,
+                target.lab ?? target.university ?? 'Independent lab')}</li>)}
               <li>{link('/targets/new', current === 'new', 'Add target')}</li>
             </ul>
           </details>
@@ -50,7 +54,7 @@ export function Shell({ current, initialTargets, section, step, children }: Read
           <Text size="2" color="gray">{section}</Text>
           <Text size="2" color="gray">{step}</Text>
         </header>
-        <Box className={styles['content']}>{children}</Box>
+        <Box className={wide ? styles['contentWide'] : styles['content']}>{children}</Box>
       </main>
     </div>
   );

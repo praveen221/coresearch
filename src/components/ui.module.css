@@ -9,6 +9,7 @@
 .main { min-width: 0; }
 .header { display: flex; justify-content: space-between; gap: 16px; padding: 24px 32px; border-bottom: 1px solid var(--cr-border); }
 .content { max-width: 896px; padding: 48px 48px 24px; }
+.contentWide { max-width: 1320px; padding: 48px 48px 24px; }
 .title { margin: 8px 0 12px; font-size: 28px; line-height: 1.5; letter-spacing: 0; }
 .section { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--cr-border); }
 .section:last-of-type { padding-bottom: 32px; }
@@ -27,7 +28,7 @@
   .navigation { margin-top: 16px; gap: 16px; }
   .localNote { display: none; }
   .header { padding: 16px 24px; }
-  .content { padding: 32px 24px 16px; }
+  .content, .contentWide { padding: 32px 24px 16px; }
   .field { grid-template-columns: minmax(0, 1fr); gap: 4px; }
 }
 .label { display: flex; flex-direction: column; gap: 4px; color: var(--cr-muted); }
@@ -39,4 +40,35 @@
 .navLink { text-decoration: none; display: flex; gap: 12px; align-items: baseline; min-height: 40px; padding-top: 8px; color: var(--cr-muted); }
 .targets { list-style: none; margin: 8px 0 0; padding: 0 0 0 8px; overflow-wrap: anywhere; }
 .plainList { list-style: none; margin: 0; padding: 0; overflow-wrap: anywhere; }
-.selected span, .navLink span { flex: none; }
+.navMarker { flex: none; }
+.navLabel { display: flex; flex-direction: column; min-width: 0; overflow-wrap: anywhere; }
+.targetLayout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 48px; align-items: start; }
+.targetMain { min-width: 0; }
+.tracks { position: sticky; top: 24px; margin-top: 32px; padding: 24px 0 0 24px; border-left: 1px solid var(--cr-border); overflow-wrap: anywhere; }
+.trackItem { padding: 12px 0; border-bottom: 1px solid var(--cr-border); }
+.trackItem a { text-decoration: none; font-weight: 500; }
+.table { width: 100%; margin-top: 16px; border-collapse: collapse; font-size: 14px; }
+.table th { text-align: left; font-weight: 500; color: var(--cr-muted); padding: 8px 8px 8px 0; border-bottom: 1px solid var(--cr-border); }
+.table td { vertical-align: top; padding: 8px 8px 8px 0; border-bottom: 1px solid var(--cr-border); overflow-wrap: anywhere; }
+.table td:first-child, .table td:nth-child(2) { white-space: nowrap; }
+.cutout { margin-top: 16px; padding: 12px 16px; background: var(--cr-soft); border: 1px solid var(--cr-border); }
+.passage { margin: 8px 0 0; font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; }
+.passage mark { background: #f1e7a8; color: var(--cr-ink); padding: 0 2px; }
+.context { color: var(--cr-muted); }
+.clipNote { margin-top: 8px; padding-left: 12px; border-left: 2px solid var(--cr-ink); }
+@media (max-width: 1000px) {
+  .targetLayout { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .tracks { position: static; order: -1; border-left: 0; padding-left: 0; }
+}
+.graphFrame { margin-top: 16px; padding: 16px; overflow-x: auto; border: 1px solid var(--cr-border); background: var(--cr-canvas); }
+.graphNode { cursor: pointer; outline: none; }
+.graphNode:focus-visible rect { stroke-width: 3; }
+.trackColumns { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 48px; }
+.draft { white-space: pre-wrap; overflow-wrap: anywhere; }
+.boardGroup { margin-top: 24px; }
+.awaiting { margin-top: 32px; padding: 24px; border: 2px solid var(--cr-ink); }
+.logItem { padding: 8px 0; border-bottom: 1px solid var(--cr-border); }
+.spaced { margin-top: 12px; }
+@media (max-width: 1000px) {
+  .trackColumns { grid-template-columns: minmax(0, 1fr); gap: 0; }
+}

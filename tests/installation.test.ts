@@ -11,7 +11,6 @@ function git(cwd: string, ...args: string[]): void {
   assert.equal(result.status, 0, result.stderr);
 }
 
-// An upstream repository, a developer clone that publishes changes, and an installed clone.
 function fixture(run: (paths: { root: string; developer: string; installed: string }) => void): void {
   const root = mkdtempSync(join(tmpdir(), 'coresearch-install-'));
   try {
@@ -44,7 +43,6 @@ void test('update refuses local changes and folders that are not their own check
   fixture(({ root, installed }) => {
     writeFileSync(join(installed, 'SKILL.md'), 'edited locally\n');
     assert.throws(() => pullLatest(installed), /local changes/);
-    // A copy without its own .git, nested in another repository, must not update that repository.
     const nested = join(installed, 'copy');
     mkdirSync(nested);
     assert.throws(() => pullLatest(nested), /not its own Git checkout/);

@@ -4,11 +4,10 @@ import type { DatabaseSync as Database } from 'node:sqlite';
 import { DatabaseSync } from 'node:sqlite';
 
 const applicationId = 0x43525348;
-const schemaVersion = 2;
+const schemaVersion = 3;
 
 export function workspacePath(explicit?: string): string {
   const selected = explicit ?? process.env['CORESEARCH_WORKSPACE'];
-  // The CLI resolves the student's chosen workspace; the app server receives it from `start`.
   if (selected === undefined) throw new Error('No workspace selected.');
   if (!isAbsolute(selected)) throw new Error('Workspace must be an absolute path.');
   return resolve(selected);
@@ -65,6 +64,86 @@ export function withDatabase<T>(workspace: string, operation: (db: DatabaseSync)
         kind TEXT NOT NULL,
         url TEXT NOT NULL,
         UNIQUE (target_id, url)
+      ) STRICT;
+      CREATE TABLE IF NOT EXISTS ideas (
+        id INTEGER PRIMARY KEY,
+        kind TEXT NOT NULL CHECK (kind IN ('question', 'area')),
+        text TEXT NOT NULL CHECK (length(trim(text)) > 0),
+        created_at TEXT NOT NULL
+      ) STRICT;
+      CREATE TABLE IF NOT EXISTS target_authors (
+        target_id INTEGER PRIMARY KEY REFERENCES targets (id) ON DELETE CASCADE,
+        author_id TEXT NOT NULL,
+        display_name TEXT NOT NULL
+      ) STRICT;
+      CREATE TABLE IF NOT EXISTS sources (
+        id INTEGER PRIMARY KEY,
+        target_id INTEGER NOT NULL REFERENCES targets (id) ON DELETE CASCADE,
+        kind TEXT NOT NULL CHECK (kind IN ('paper', 'page')),
+        title TEXT NOT NULL,
+        url TEXT,
+        doi TEXT,
+        openalex_id TEXT,
+        year INTEGER,
+        venue TEXT,
+        authors TEXT NOT NULL,
+        abstract TEXT,
+        pdf_urls TEXT NOT NULL,
+        file_path TEXT,
+        text_path TEXT,
+        page_count INTEGER,
+        status TEXT NOT NULL CHECK (status IN ('unread', 'abstract', 'partial', 'full', 'inaccessible')),
+        status_note TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        UNIQUE (target_id, openalex_id),
+        UNIQUE (target_id, kind, url)
+      ) STRICT;
+      CREATE TABLE IF NOT EXISTS citations (
+        source_id INTEGER NOT NULL REFERENCES sources (id) ON DELETE CASCADE,
+        cited_openalex_id TEXT NOT NULL,
+        PRIMARY KEY (source_id, cited_openalex_id)
+      ) STRICT;
+      CREATE TABLE IF NOT EXISTS tracks (
+        id INTEGER PRIMARY KEY,
+        target_id INTEGER NOT NULL REFERENCES targets (id) ON DELETE CASCADE,
+        kind TEXT NOT NULL CHECK (kind IN ('question', 'frontier')),
+        origin TEXT NOT NULL CHECK (origin IN ('student', 'agent')),
+        idea_id INTEGER REFERENCES ideas (id) ON DELETE SET NULL,
+        title TEXT NOT NULL,
+        question TEXT NOT NULL,
+        status TEXT NOT NULL CHECK (status IN ('proposed', 'running', 'awaiting', 'paused', 'dropped', 'strong')),
+        summary TEXT,
+        prompt TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      ) STRICT;
+      CREATE TABLE IF NOT EXISTS track_sources (
+        track_id INTEGER NOT NULL REFERENCES tracks (id) ON DELETE CASCADE,
+        source_id INTEGER NOT NULL REFERENCES sources (id) ON DELETE CASCADE,
+        role TEXT NOT NULL,
+        note TEXT,
+        PRIMARY KEY (track_id, source_id)
+      ) STRICT;
+      CREATE TABLE IF NOT EXISTS track_events (
+        id INTEGER PRIMARY KEY,
+        track_id INTEGER NOT NULL REFERENCES tracks (id) ON DELETE CASCADE,
+        actor TEXT NOT NULL CHECK (actor IN ('student', 'agent')),
+        kind TEXT NOT NULL,
+        text TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      ) STRICT;
+      CREATE TABLE IF NOT EXISTS clips (
+        id INTEGER PRIMARY KEY,
+        source_id INTEGER NOT NULL REFERENCES sources (id) ON DELETE CASCADE,
+        track_id INTEGER REFERENCES tracks (id) ON DELETE SET NULL,
+        kind TEXT NOT NULL,
+        quote TEXT NOT NULL,
+        page INTEGER,
+        context_before TEXT NOT NULL,
+        context_after TEXT NOT NULL,
+        note TEXT,
+        created_at TEXT NOT NULL
       ) STRICT;
       PRAGMA application_id = ${String(applicationId)};
       PRAGMA user_version = ${String(schemaVersion)};

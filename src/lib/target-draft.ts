@@ -1,4 +1,3 @@
-// Converts between saved targets and editable form state.
 import type { LabKind, Link, Target, TargetInput, TargetPatch } from './target-schema.ts';
 
 export interface TargetDraft {
@@ -32,7 +31,6 @@ export function toTargetInput(draft: TargetDraft): TargetInput {
   };
 }
 
-// Sends only changed fields, so concurrent edits to other fields are never overwritten.
 export function toTargetPatch(base: Target, draft: TargetDraft): TargetPatch {
   const patch: TargetPatch = {};
   if (draft.labKind !== base.labKind) patch.labKind = draft.labKind;
@@ -49,7 +47,6 @@ export function toTargetPatch(base: Target, draft: TargetDraft): TargetPatch {
   return patch;
 }
 
-// Re-applies the student's own changes on top of a target another writer saved.
 export function rebaseTarget(latest: Target, patch: TargetPatch): TargetDraft {
   const draft = toTargetDraft(latest);
   if (patch.labKind !== undefined) draft.labKind = patch.labKind;

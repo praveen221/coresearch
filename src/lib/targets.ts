@@ -70,7 +70,6 @@ export function addTarget(input: unknown, workspace = workspacePath()): Target {
   }, 'BEGIN IMMEDIATE'));
 }
 
-// `expected` rejects the update when another writer (chat or another tab) saved first.
 export function updateTarget(id: number, input: unknown, workspace = workspacePath(),
   expected?: { updatedAt: string }): Target {
   const patch = targetPatchSchema.parse(input);

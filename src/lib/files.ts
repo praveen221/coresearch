@@ -1,0 +1,35 @@
+import { mkdirSync, realpathSync, existsSync } from 'node:fs';
+import { isAbsolute, join, relative, resolve, sep } from 'node:path';
+
+export function slug(value: string, words = 6): string {
+  const text = value.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ').trim().split(' ').filter((word) => word !== '').slice(0, words).join('-');
+  return text === '' ? 'untitled' : text;
+}
+
+export function targetFolder(target: { id: number; professor: string }): string {
+  return join('targets', `${String(target.id)}-${slug(target.professor, 4)}`);
+}
+
+export function ensureTargetFolders(workspace: string, target: { id: number; professor: string }): string {
+  const folder = targetFolder(target);
+  for (const part of ['pages', 'papers', join('papers', 'text'), 'inbox', 'tracks']) {
+    mkdirSync(join(workspace, folder, part), { recursive: true, mode: 0o700 });
+  }
+  return folder;
+}
+
+export function paperFileName(paper: { id: number; year: number | null; authors: readonly string[]; title: string }): string {
+  const author = slug(paper.authors[0]?.split(' ').at(-1) ?? 'unknown', 1);
+  return `${String(paper.year ?? 'undated')}-${author}-${slug(paper.title, 6)}-${String(paper.id)}`;
+}
+
+export function resolveServedFile(workspace: string, requested: string): string | null {
+  if (requested === '' || isAbsolute(requested) || requested.includes('\0')) return null;
+  const root = resolve(workspace, 'targets');
+  const candidate = resolve(workspace, requested);
+  if (!candidate.startsWith(`${root}${sep}`) || !existsSync(candidate)) return null;
+  const real = realpathSync(candidate);
+  const realRoot = realpathSync(root);
+  return relative(realRoot, real).startsWith('..') || isAbsolute(relative(realRoot, real)) ? null : real;
+}

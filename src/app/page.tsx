@@ -6,7 +6,6 @@ import { listTargets } from '../lib/targets.ts';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
-// The layout's title template skips pages in its own segment.
 export const metadata: Metadata = { title: 'Profile · Coresearch' };
 
 export default function Page(): ReactElement {

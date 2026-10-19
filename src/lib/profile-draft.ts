@@ -1,4 +1,3 @@
-// Converts between saved profiles and editable form state.
 import type { Profile, ProfilePatch } from './profile-schema.ts';
 
 type Funding = 'unknown' | 'yes' | 'no';
@@ -26,7 +25,6 @@ function fundingValue(value: Funding): boolean | null {
   return value === 'unknown' ? null : value === 'yes';
 }
 
-// Sends only changed fields, so concurrent edits to other fields are never overwritten.
 export function toPatch(base: Profile, draft: Draft): ProfilePatch {
   const patch: ProfilePatch = {};
   for (const key of ['name', 'background', 'fundingNotes'] as const) {
@@ -56,7 +54,6 @@ export function changedFields(before: Profile, after: Profile): string[] {
   return fieldLabels.filter(([key]) => JSON.stringify(a[key]) !== JSON.stringify(b[key])).map(([, label]) => label);
 }
 
-// Re-applies the student's own changes on top of a profile another writer saved.
 export function rebase(latest: Profile, patch: ProfilePatch): Draft {
   const draft = toDraft(latest);
   for (const key of ['name', 'background', 'fundingNotes'] as const) {

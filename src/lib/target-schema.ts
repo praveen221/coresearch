@@ -37,7 +37,6 @@ export const targetInputSchema = z.strictObject({
   links: links.default([]).refine(uniqueUrls, 'Each address can be saved once.'),
 }).refine(universityKnown, universityRule).refine(labNamed, labRule);
 
-// Fields after a patch is merged; the same placement rules apply to every saved target.
 export const targetFieldsSchema = z.strictObject({ professor, labKind, university, lab })
   .refine(universityKnown, universityRule).refine(labNamed, labRule);
 

@@ -17,7 +17,6 @@ const stateSchema = z.object({ pid: z.number(), port: z.number(), instance: z.st
 
 async function request(url: string, options?: RequestInit): Promise<Response> {
   const headers = new Headers(options?.headers);
-  // Restart checks must not reuse a socket belonging to the previous server process.
   headers.set('Connection', 'close');
   return fetch(url, { ...options, headers, signal: AbortSignal.timeout(5000) });
 }
@@ -86,12 +85,17 @@ void test('local app preserves data, reuses its instance, denies writes and fore
       university: 'Example University' }));
     assert.deepEqual(targetListSchema.parse(await (await request(`${base}/api/targets`)).json()), [target]);
     assert.equal((await request(`${base}/targets/1`)).status, 200);
+    assert.equal((await request(`${base}/ideas`)).status, 200);
+    assert.deepEqual(await (await request(`${base}/api/ideas`)).json(), []);
+    assert.deepEqual(await (await request(`${base}/api/targets/1/research`)).json(), { sources: [], tracks: [], clips: [], author: null });
+    assert.equal((await request(`${base}/api/targets/999/research`)).status, 404);
+    assert.equal((await request(`${base}/targets/1/tracks/99`)).status, 404);
+    assert.equal((await request(`${base}/api/files?path=${encodeURIComponent('../coresearch.sqlite')}`)).status, 404);
+    assert.equal((await request(`${base}/api/files?path=coresearch.sqlite`)).status, 404);
     assert.equal((await request(`${base}/targets/999`)).status, 404);
     assert.equal((await request(`${base}/api/targets`, { method: 'POST', body: '{}' })).status, 405);
     assert.equal((await request(`${base}/private/coresearch.sqlite`)).status, 404);
-    // DNS rebinding: a foreign hostname reaching the loopback server must not read or write data.
     assert.equal(await foreignHostStatus(base), 403);
-    // A wrong PID must never be used to stop a different process.
     const state = stateSchema.parse(JSON.parse(originalState));
     writeFileSync(statePath, JSON.stringify({ ...state, pid: process.pid }));
     assert.equal(z.object({ stopped: z.boolean() }).parse(successful('stop')).stopped, false);

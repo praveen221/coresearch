@@ -7,6 +7,10 @@ import type { Profile } from '../lib/profile-schema.ts';
 import { targetInputSchema } from '../lib/target-schema.ts';
 import type { Target } from '../lib/target-schema.ts';
 import { addTarget, removeTarget, targetIdSchema, updateTarget } from '../lib/targets.ts';
+import { workspacePath } from '../lib/database.ts';
+import { addIdea, decideTrack, removeIdea } from '../lib/research.ts';
+import { ideaInputSchema } from '../lib/research-schema.ts';
+import type { Idea, Track } from '../lib/research-schema.ts';
 
 export type ActionResult<T> =
   | { ok: true; value: T }
@@ -23,7 +27,6 @@ function failure(error: unknown): { ok: false; conflict: boolean; errors: string
   return { ok: false, conflict: false, errors: ['Could not save. Check the local server log.'] };
 }
 
-// Server Actions are public endpoints: every argument is validated, never trusted.
 export async function saveProfile(patch: unknown, expectedUpdatedAt: unknown): Promise<ActionResult<Profile>> {
   try {
     const updatedAt = await z.iso.datetime().nullable().parseAsync(expectedUpdatedAt);
@@ -47,5 +50,25 @@ export async function saveTarget(id: unknown, patch: unknown, expectedUpdatedAt:
 export async function deleteTarget(id: unknown): Promise<ActionResult<{ removed: number }>> {
   try {
     return { ok: true, value: removeTarget(await targetIdSchema.parseAsync(id)) };
+  } catch (error) { return failure(error); }
+}
+
+export async function createIdea(input: unknown): Promise<ActionResult<Idea>> {
+  try {
+    return { ok: true, value: addIdea(workspacePath(), await ideaInputSchema.parseAsync(input)) };
+  } catch (error) { return failure(error); }
+}
+
+export async function deleteIdea(id: unknown): Promise<ActionResult<{ removed: number }>> {
+  try {
+    return { ok: true, value: removeIdea(workspacePath(), await targetIdSchema.parseAsync(id)) };
+  } catch (error) { return failure(error); }
+}
+
+export async function decide(id: unknown, decision: unknown, note: unknown): Promise<ActionResult<Track>> {
+  try {
+    const choice = await z.enum(['continue', 'pause', 'drop']).parseAsync(decision);
+    const reason = z.string().max(4000).nullable().parse(note);
+    return { ok: true, value: decideTrack(workspacePath(), targetIdSchema.parse(id), choice, reason) };
   } catch (error) { return failure(error); }
 }

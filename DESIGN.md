@@ -15,10 +15,9 @@ Reference: [OpenCode analysis](https://getdesign.md/opencode.ai/design-md), retr
 
 ## Initial interface
 
-- Left navigation: Profile, then expandable Workspace listing targets and “Add target”.
 - Main view: profile information, editable in place; updates from chat also appear. No in-app chat.
 - Unknown fields say “Not provided.” Funding remains unknown until stated.
 - Show saved-update time and a clear message when live refresh fails. Never display sample data as a real profile.
 - Narrow screens stack navigation above content; long entries wrap without horizontal scrolling.
 
-The paper investigation board and lab research screens are not built yet.
+Evidence appears as cutouts: the exact quotation highlighted in its surrounding text, with its source and page. Reading progress is shown with text markers as well as fill, never colour alone.

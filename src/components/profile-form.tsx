@@ -117,7 +117,6 @@ export function ProfileForm({ initialBase, latest, onSaved, onCancel }: Readonly
       {errors.map((error) => <Text key={error} size="2">[!] {error}</Text>)}
     </Flex>
     <Flex gap="3" wrap="wrap">
-      {/* Distinct keys stop React reusing one element: a click on "keep" would otherwise submit. */}
       {stale
         ? <Button key="keep" type="button" onClick={keepEdits} disabled={pending}>Keep my edits on the latest profile</Button>
         : <Button key="save" type="submit" disabled={!changed || pending}>{pending ? 'Saving…' : 'Save'}</Button>}
