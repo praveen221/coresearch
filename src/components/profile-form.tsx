@@ -7,7 +7,7 @@ import { saveProfile } from '../app/actions.ts';
 import { changedFields, rebase, toDraft, toPatch } from '../lib/profile-draft.ts';
 import type { Draft } from '../lib/profile-draft.ts';
 import type { Profile } from '../lib/profile-schema.ts';
-import styles from './profile-view.module.css';
+import styles from './ui.module.css';
 
 type ListName = 'interests' | 'constraints';
 
@@ -64,7 +64,7 @@ export function ProfileForm({ initialBase, latest, onSaved, onCancel }: Readonly
     event.preventDefault();
     startTransition(async () => {
       const result = await saveProfile(patch, base.updatedAt);
-      if (result.ok) onSaved(result.profile);
+      if (result.ok) onSaved(result.value);
       else setErrors(result.conflict ? [] : result.errors);
     });
   }

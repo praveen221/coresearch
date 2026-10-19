@@ -9,6 +9,7 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { z } from 'zod';
 import { profileSchema } from '../src/lib/profile-schema.ts';
+import { targetListSchema } from '../src/lib/target-schema.ts';
 
 const root = new URL('..', import.meta.url);
 const statusSchema = z.object({ running: z.boolean(), url: z.url().nullable() });
@@ -80,6 +81,13 @@ void test('local app preserves data, reuses its instance, denies writes and fore
     assert.match(response.headers.get('cache-control') ?? '', /no-store/);
     assert.deepEqual(profileSchema.parse(await response.json()), saved);
     assert.equal((await request(`${base}/api/profile`, { method: 'POST', body: '{}' })).status, 405);
+    assert.deepEqual(targetListSchema.parse(await (await request(`${base}/api/targets`)).json()), []);
+    const target = successful('target:add', JSON.stringify({ professor: 'Example Professor', labKind: 'university',
+      university: 'Example University' }));
+    assert.deepEqual(targetListSchema.parse(await (await request(`${base}/api/targets`)).json()), [target]);
+    assert.equal((await request(`${base}/targets/1`)).status, 200);
+    assert.equal((await request(`${base}/targets/999`)).status, 404);
+    assert.equal((await request(`${base}/api/targets`, { method: 'POST', body: '{}' })).status, 405);
     assert.equal((await request(`${base}/private/coresearch.sqlite`)).status, 404);
     // DNS rebinding: a foreign hostname reaching the loopback server must not read or write data.
     assert.equal(await foreignHostStatus(base), 403);

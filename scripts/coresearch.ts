@@ -10,6 +10,8 @@ import { z } from 'zod';
 import { workspacePath } from '../src/lib/database.ts';
 import { getProfile, updateProfile } from '../src/lib/profile.ts';
 import { profilePatchSchema } from '../src/lib/profile-schema.ts';
+import { targetInputSchema, targetPatchSchema } from '../src/lib/target-schema.ts';
+import { addTarget, getTarget, listTargets, removeTarget, targetIdSchema, updateTarget } from '../src/lib/targets.ts';
 
 const packageRoot = fileURLToPath(new URL('..', import.meta.url));
 const nextBinary = createRequire(import.meta.url).resolve('next/dist/bin/next');
@@ -94,27 +96,31 @@ async function start(workspace: string, port: number): Promise<unknown> {
   }
 }
 async function inputFromStdin(): Promise<unknown> {
-  if (process.stdin.isTTY) throw new Error('Supply a JSON update on stdin.');
+  if (process.stdin.isTTY) throw new Error('Supply JSON on stdin.');
   process.stdin.setEncoding('utf8');
   let input = '';
   for await (const chunk of process.stdin) {
     input += z.string().parse(chunk);
-    if (Buffer.byteLength(input) > 65_536) throw new Error('Profile update exceeds 64 KiB.');
+    if (Buffer.byteLength(input) > 65_536) throw new Error('Input exceeds 64 KiB.');
   }
   const parsed: unknown = JSON.parse(input);
   return parsed;
 }
 async function main(): Promise<unknown> {
   const args = parseArgs({
-    options: { workspace: { type: 'string' }, port: { type: 'string' } },
+    options: { workspace: { type: 'string' }, port: { type: 'string' }, id: { type: 'string' } },
     allowPositionals: true,
     strict: true,
   });
-  const command = z.enum(['setup', 'start', 'status', 'stop', 'profile:get', 'profile:update', 'profile:schema'])
-    .parse(args.positionals[0]);
+  const command = z.enum(['setup', 'start', 'status', 'stop', 'profile:get', 'profile:update', 'profile:schema',
+    'target:list', 'target:get', 'target:add', 'target:update', 'target:remove', 'target:schema']).parse(args.positionals[0]);
   if (args.positionals.length !== 1) throw new Error('Provide exactly one command.');
   const workspace = workspacePath(args.values.workspace);
   const port = z.coerce.number().int().min(1024).max(65535).parse(args.values.port ?? '3780');
+  function id(): number {
+    if (args.values.id === undefined) throw new Error('Provide --id.');
+    return targetIdSchema.parse(args.values.id);
+  }
   switch (command) {
     case 'setup': {
       const existing = loadState(workspace);
@@ -153,6 +159,15 @@ async function main(): Promise<unknown> {
     case 'profile:get': return getProfile(workspace);
     case 'profile:update': return updateProfile(await inputFromStdin(), workspace);
     case 'profile:schema': return z.toJSONSchema(profilePatchSchema, { io: 'input' });
+    case 'target:list': return listTargets(workspace);
+    case 'target:get': return getTarget(id(), workspace);
+    case 'target:add': return addTarget(await inputFromStdin(), workspace);
+    case 'target:update': return updateTarget(id(), await inputFromStdin(), workspace);
+    case 'target:remove': return removeTarget(id(), workspace);
+    case 'target:schema': return {
+      add: z.toJSONSchema(targetInputSchema, { io: 'input' }),
+      update: z.toJSONSchema(targetPatchSchema, { io: 'input' }),
+    };
   }
 }
 

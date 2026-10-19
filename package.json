@@ -13,7 +13,7 @@
     "coresearch": "tsx scripts/coresearch.ts",
     "typecheck": "next typegen && tsc --noEmit",
     "lint": "eslint . --max-warnings 0",
-    "test": "node --import tsx --test tests/profile.test.ts tests/profile-draft.test.ts tests/cli.test.ts",
+    "test": "node --import tsx --test tests/profile.test.ts tests/profile-draft.test.ts tests/targets.test.ts tests/target-draft.test.ts tests/cli.test.ts",
     "test:app": "node --import tsx --test tests/app.test.ts",
     "check": "npm run typecheck && npm run lint && npm test"
   },

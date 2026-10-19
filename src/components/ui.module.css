@@ -3,9 +3,8 @@
 .brand { letter-spacing: -1px; }
 .brand span { color: var(--cr-muted); }
 .navigation { display: flex; flex-direction: column; gap: 24px; margin-top: 48px; }
-.selected { text-decoration: none; font-weight: 500; display: flex; gap: 12px; align-items: center; min-height: 40px; }
+.selected { text-decoration: none; font-weight: 500; display: flex; gap: 12px; align-items: baseline; min-height: 40px; padding-top: 8px; }
 .workspace summary { cursor: pointer; min-height: 40px; display: list-item; list-style-position: inside; }
-.emptyLabs { margin: 8px 0 0 20px; }
 .localNote { margin-top: auto; padding-top: 48px; }
 .main { min-width: 0; }
 .header { display: flex; justify-content: space-between; gap: 16px; padding: 24px 32px; border-bottom: 1px solid var(--cr-border); }
@@ -37,3 +36,7 @@
 .editableItem::before { flex: none; }
 .editableItem span { flex: 1; min-width: 0; }
 .srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.navLink { text-decoration: none; display: flex; gap: 12px; align-items: baseline; min-height: 40px; padding-top: 8px; color: var(--cr-muted); }
+.targets { list-style: none; margin: 8px 0 0; padding: 0 0 0 8px; overflow-wrap: anywhere; }
+.plainList { list-style: none; margin: 0; padding: 0; overflow-wrap: anywhere; }
+.selected span, .navLink span { flex: none; }

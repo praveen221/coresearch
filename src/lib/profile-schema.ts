@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const text = z.string().trim().min(1).max(10_000);
+export const text = z.string().trim().min(1, 'Cannot be blank.').max(10_000);
 const items = z.array(text).max(200);
 const changes = z.strictObject({
   add: items.optional().describe('Exact strings to add; duplicates are ignored.'),

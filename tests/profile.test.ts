@@ -4,7 +4,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { test } from 'node:test';
-import { getProfile, ProfileConflictError, updateProfile } from '../src/lib/profile.ts';
+import { ConflictError } from '../src/lib/errors.ts';
+import { getProfile, updateProfile } from '../src/lib/profile.ts';
 import { workspacePath } from '../src/lib/database.ts';
 
 function fixture(run: (workspace: string) => void): void {
@@ -103,7 +104,7 @@ void test('an update based on a stale profile is refused without changing data',
     const loaded = updateProfile({ name: 'Loaded' }, workspace);
     const elsewhere = updateProfile({ background: 'Saved by the agent' }, workspace);
     assert.throws(() => updateProfile({ name: 'Stale edit' }, workspace, { updatedAt: loaded.updatedAt }),
-      ProfileConflictError);
+      ConflictError);
     assert.deepEqual(getProfile(workspace), elsewhere);
     assert.equal(updateProfile({ name: 'Fresh edit' }, workspace, { updatedAt: elsewhere.updatedAt }).name, 'Fresh edit');
   });

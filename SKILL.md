@@ -1,6 +1,6 @@
 ---
 name: coresearch
-description: Set up a local Coresearch profile workspace and save student information from chat into SQLite, with a local UI where the student can also edit it. Use for Coresearch setup, profile updates, and reopening the workspace; research and lab processing are not implemented yet.
+description: Set up a local Coresearch workspace and save the student's profile and target professors or labs from chat into SQLite, with a local UI where the student can also edit them. Use for Coresearch setup, profile and target updates, and reopening the workspace; lab research is not implemented yet.
 ---
 
 # Coresearch
@@ -14,7 +14,7 @@ Run commands from this skill's directory, located relative to this `SKILL.md`; n
 1. Use the student's existing workspace. Default: `~/.local/share/coresearch`. An explicitly chosen absolute path overrides it via `--workspace`. Keep personal data outside the installed package. For development in this repository, use `<repository>/private`.
 2. First installation or package update: run `npm ci`, then `npm run coresearch -- setup --workspace <absolute-path>`. Setup creates/preserves SQLite and builds the UI. Stop an existing instance before rebuilding.
 3. Run `npm run coresearch -- start --workspace <absolute-path>`. Repeated starts reuse a healthy instance. Return the URL only after successful startup.
-4. Read the saved profile with `npm run coresearch -- profile:get --workspace <absolute-path>` before asking for information.
+4. Read saved data with `profile:get` and `target:list` (same `--workspace`) before asking for information.
 
 ## Chat updates
 
@@ -24,7 +24,19 @@ Run `npm run coresearch -- profile:schema` for the accepted update fields. Suppl
 - Scalar updates replace that field; omitted fields are preserved. Add/remove interests and constraints explicitly; do not replace earlier items implicitly.
 - Use these commands, not ad hoc SQL. Acknowledge a save only when the command succeeds. On failure, report the error and preserve the intended update for correction.
 - The student may edit the profile in the UI at any time; run `profile:get` before relying on saved values.
-- Keep conversation concise. Do not invent labs, start research, contact anyone, or regenerate the UI during profile updates.
+- Keep conversation concise. Do not invent labs, start research, contact anyone, or regenerate the UI during updates.
+
+## Targets
+
+A target is one specific professor. When the student names a lab, professor, or university:
+
+1. Ask whether the lab is part of a university or independent.
+2. Require one specific professor. General applications to a lab or university are not accepted; ask until one is named.
+3. University lab: ask for the university; the lab name is optional. Independent lab: ask for its name and partner university, which may stay unknown.
+4. Ask for links: the professor's page, the PhD programme page, and the lab website if one exists. Publication profiles and an advertised position also help. Several links of each kind are allowed.
+5. You may search for missing links, but save one only after the student confirms it belongs to this professor.
+
+Run `npm run coresearch -- target:schema` for accepted fields. Use `target:add` (JSON on stdin), `target:list`, `target:get --id <id>`, `target:update --id <id>` (JSON on stdin), and `target:remove --id <id>`, each with `--workspace`. Remove a target only when the student asks. The student may also add or edit targets in the UI; run `target:get` before relying on saved values.
 
 ## Server control
 

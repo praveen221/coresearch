@@ -1,9 +1,11 @@
 import { mkdirSync, chmodSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { isAbsolute, join, resolve } from 'node:path';
+import type { DatabaseSync as Database } from 'node:sqlite';
 import { DatabaseSync } from 'node:sqlite';
 
 const applicationId = 0x43525348;
+const schemaVersion = 2;
 
 export function workspacePath(explicit?: string): string {
   const selected = explicit ?? process.env['CORESEARCH_WORKSPACE'];
@@ -26,7 +28,7 @@ export function withDatabase<T>(workspace: string, operation: (db: DatabaseSync)
     if (identity !== 0 && identity !== applicationId) {
       throw new Error('This database belongs to another application.');
     }
-    if (version !== 0 && version !== 1) throw new Error('Unsupported database version.');
+    if (typeof version !== 'number' || version < 0 || version > schemaVersion) throw new Error('Unsupported database version.');
     if (identity === 0) {
       const tables = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all();
       if (tables.length > 0) throw new Error('Refusing to initialize an existing unknown database.');
@@ -50,12 +52,40 @@ export function withDatabase<T>(workspace: string, operation: (db: DatabaseSync)
         id INTEGER PRIMARY KEY,
         description TEXT NOT NULL UNIQUE CHECK (length(trim(description)) > 0)
       ) STRICT;
+      CREATE TABLE IF NOT EXISTS targets (
+        id INTEGER PRIMARY KEY,
+        professor TEXT NOT NULL CHECK (length(trim(professor)) > 0),
+        lab_kind TEXT NOT NULL CHECK (lab_kind IN ('university', 'independent')),
+        university TEXT,
+        lab TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      ) STRICT;
+      CREATE TABLE IF NOT EXISTS target_links (
+        id INTEGER PRIMARY KEY,
+        target_id INTEGER NOT NULL REFERENCES targets (id) ON DELETE CASCADE,
+        kind TEXT NOT NULL,
+        url TEXT NOT NULL,
+        UNIQUE (target_id, url)
+      ) STRICT;
       PRAGMA application_id = ${String(applicationId)};
-      PRAGMA user_version = 1;
+      PRAGMA user_version = ${String(schemaVersion)};
       COMMIT;
     `);
     return operation(db);
   } finally {
     db.close();
+  }
+}
+
+export function transaction<T>(db: Database, operation: () => T, begin: 'BEGIN' | 'BEGIN IMMEDIATE' = 'BEGIN'): T {
+  db.exec(begin);
+  try {
+    const result = operation();
+    db.exec('COMMIT');
+    return result;
+  } catch (error) {
+    db.exec('ROLLBACK');
+    throw error;
   }
 }

@@ -1,6 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { z } from 'zod';
-import { withDatabase, workspacePath } from './database.ts';
+import { transaction, withDatabase, workspacePath } from './database.ts';
+import { ConflictError } from './errors.ts';
 import { profilePatchSchema, profileSchema } from './profile-schema.ts';
 import type { Profile, ProfilePatch } from './profile-schema.ts';
 
@@ -29,17 +30,7 @@ function read(db: DatabaseSync): Profile {
 }
 
 export function getProfile(workspace = workspacePath()): Profile {
-  return withDatabase(workspace, (db) => {
-    db.exec('BEGIN');
-    try {
-      const profile = read(db);
-      db.exec('COMMIT');
-      return profile;
-    } catch (error) {
-      db.exec('ROLLBACK');
-      throw error;
-    }
-  });
+  return withDatabase(workspace, (db) => transaction(db, () => read(db)));
 }
 
 function updateItems(db: DatabaseSync, table: 'interests' | 'constraints', changes: ProfilePatch['interests']): void {
@@ -53,36 +44,24 @@ function updateItems(db: DatabaseSync, table: 'interests' | 'constraints', chang
   }
 }
 
-export class ProfileConflictError extends Error {
-  constructor() { super('The profile changed after it was loaded.'); }
-}
-
 // `expected` rejects the update when another writer (chat or another tab) saved first.
 export function updateProfile(input: unknown, workspace = workspacePath(),
   expected?: { updatedAt: string | null }): Profile {
   const patch = profilePatchSchema.parse(input);
-  return withDatabase(workspace, (db) => {
-    db.exec('BEGIN IMMEDIATE');
-    try {
-      const current = read(db);
-      if (expected !== undefined && expected.updatedAt !== current.updatedAt) throw new ProfileConflictError();
-      const needsFunding = patch.needsFunding === undefined ? current.needsFunding : patch.needsFunding;
-      db.prepare(`UPDATE profile SET name = ?, background = ?, needs_funding = ?,
-        funding_notes = ?, updated_at = ? WHERE id = 1`).run(
-        patch.name === undefined ? current.name : patch.name,
-        patch.background === undefined ? current.background : patch.background,
-        needsFunding === null ? null : Number(needsFunding),
-        patch.fundingNotes === undefined ? current.fundingNotes : patch.fundingNotes,
-        new Date().toISOString(),
-      );
-      updateItems(db, 'interests', patch.interests);
-      updateItems(db, 'constraints', patch.constraints);
-      const profile = read(db);
-      db.exec('COMMIT');
-      return profile;
-    } catch (error) {
-      db.exec('ROLLBACK');
-      throw error;
-    }
-  });
+  return withDatabase(workspace, (db) => transaction(db, () => {
+    const current = read(db);
+    if (expected !== undefined && expected.updatedAt !== current.updatedAt) throw new ConflictError('profile');
+    const needsFunding = patch.needsFunding === undefined ? current.needsFunding : patch.needsFunding;
+    db.prepare(`UPDATE profile SET name = ?, background = ?, needs_funding = ?,
+      funding_notes = ?, updated_at = ? WHERE id = 1`).run(
+      patch.name === undefined ? current.name : patch.name,
+      patch.background === undefined ? current.background : patch.background,
+      needsFunding === null ? null : Number(needsFunding),
+      patch.fundingNotes === undefined ? current.fundingNotes : patch.fundingNotes,
+      new Date().toISOString(),
+    );
+    updateItems(db, 'interests', patch.interests);
+    updateItems(db, 'constraints', patch.constraints);
+    return read(db);
+  }, 'BEGIN IMMEDIATE'));
 }
