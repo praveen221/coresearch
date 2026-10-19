@@ -1,0 +1,26 @@
+:root {
+  --cr-canvas: #fdfcfc;
+  --cr-soft: #f8f7f7;
+  --cr-ink: #201d1d;
+  --cr-body: #424245;
+  --cr-muted: #646262;
+  --cr-border: rgba(15, 0, 0, .12);
+  --cr-font: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+.radix-themes {
+  --default-font-family: var(--cr-font);
+  --heading-font-family: var(--cr-font);
+  --code-font-family: var(--cr-font);
+  --color-background: var(--cr-canvas);
+  --gray-12: var(--cr-ink);
+  --gray-11: var(--cr-muted);
+  background: var(--cr-canvas);
+  color: var(--cr-ink);
+  min-height: 100vh;
+}
+a { color: inherit; }
+button, summary, a { -webkit-tap-highlight-color: transparent; }
+a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--cr-ink); outline-offset: 4px; }
+::selection { background: #e8e4e4; }

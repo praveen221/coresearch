@@ -1,0 +1,33 @@
+.shell { display: grid; grid-template-columns: 224px minmax(0, 1fr); min-height: 100vh; }
+.sidebar { display: flex; flex-direction: column; padding: 32px 24px; border-right: 1px solid var(--cr-border); }
+.brand { letter-spacing: -1px; }
+.brand span { color: var(--cr-muted); }
+.navigation { display: flex; flex-direction: column; gap: 24px; margin-top: 48px; }
+.selected { text-decoration: none; font-weight: 500; display: flex; gap: 12px; align-items: center; min-height: 40px; }
+.workspace summary { cursor: pointer; min-height: 40px; display: list-item; list-style-position: inside; }
+.emptyLabs { margin: 8px 0 0 20px; }
+.localNote { margin-top: auto; padding-top: 48px; }
+.main { min-width: 0; }
+.header { display: flex; justify-content: space-between; gap: 16px; padding: 24px 32px; border-bottom: 1px solid var(--cr-border); }
+.content { max-width: 896px; padding: 48px 48px 24px; }
+.title { margin: 8px 0 12px; font-size: 28px; line-height: 1.5; letter-spacing: 0; }
+.section { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--cr-border); }
+.section:last-of-type { padding-bottom: 32px; }
+.fields { margin: 16px 0 0; }
+.field { display: grid; grid-template-columns: 128px minmax(0, 1fr); gap: 16px; padding: 8px 0; }
+.field dt { color: var(--cr-muted); }
+.field dd { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.items { margin: 0; padding: 0; list-style: none; }
+.items li { padding: 8px 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.items li::before { content: '[+] '; color: var(--cr-muted); }
+.skip { position: absolute; left: -10000px; }
+.skip:focus { left: 16px; top: 8px; z-index: 1; padding: 8px; background: var(--cr-canvas); }
+@media (max-width: 640px) {
+  .shell { grid-template-columns: minmax(0, 1fr); }
+  .sidebar { border-right: 0; border-bottom: 1px solid var(--cr-border); padding: 16px 24px; }
+  .navigation { margin-top: 16px; gap: 16px; }
+  .localNote { display: none; }
+  .header { padding: 16px 24px; }
+  .content { padding: 32px 24px 16px; }
+  .field { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+}

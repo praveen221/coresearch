@@ -19,3 +19,12 @@ __pycache__/
 
 # OS artifacts
 .DS_Store
+
+# Local application artifacts
+node_modules/
+.next/
+*.tsbuildinfo
+next-env.d.ts
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
