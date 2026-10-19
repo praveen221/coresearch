@@ -11,20 +11,23 @@ Run commands from this skill's directory, located relative to this `SKILL.md`; n
 
 ## Setup and reopen
 
-1. Use the student's existing workspace. Default: `~/Coresearch`, used whatever folder the agent was opened in; omit `--workspace` for it. An explicitly chosen absolute path overrides it via `--workspace`. Keep personal data outside the installed package. For development in this repository, use `<repository>/private`.
-2. First installation or package update: run `npm ci`, then `npm run coresearch -- setup --workspace <absolute-path>`. Setup creates/preserves SQLite and builds the UI. Stop an existing instance before rebuilding.
-3. Run `npm run coresearch -- start --workspace <absolute-path>`. Repeated starts reuse a healthy instance. Return the URL only after successful startup.
-4. Read saved data with `profile:get` and `target:list` (same `--workspace`) before asking for information.
+1. First installation (no `node_modules` in this directory): run `npm ci`.
+2. Run `npm run coresearch -- workspace`. It prints the student's workspace folder, or `null` before the first setup.
+3. If `null`: ask the student where Coresearch should keep their research. Suggest `~/Documents/Coresearch`; any folder name and location is fine, including an existing folder. Expand `~` to an absolute path. Coresearch supports one workspace per installation. Then run `npm run coresearch -- setup --workspace <absolute-path>`. Setup creates or preserves the database, remembers the folder, and builds the UI. It refuses a folder inside a Git repository unless the repository ignores it.
+4. Run `npm run coresearch -- start`. Repeated starts reuse a healthy instance. Return the URL only after successful startup.
+5. Read saved data with `profile:get` and `target:list` before asking for information.
 
-Code lives in this skill's directory; the student's data lives in the workspace. Updating replaces code only. Recommend that the student opens the agent in the workspace folder, so later file work there needs no extra permission.
+After setup, omit `--workspace`; every command uses the remembered folder. For development in this repository, use `setup --workspace <repository>/private`.
+
+Code lives in this skill's directory; the student's data lives in the workspace, and updates replace code only. If your current working directory is not the workspace or inside it, end your first reply of the session with one line: “Tip: open your agent in <workspace> for fewer permission prompts.” Say it once per session.
 
 ## Updating Coresearch
 
-When the student asks to update Coresearch, run `npm run coresearch -- update` (plus `--workspace` if not the default) from this skill's directory. It updates only this installation, refuses if the installation has local changes, and restarts the app when new code arrives. Report the result; never run `git pull` yourself.
+When the student asks to update Coresearch, run `npm run coresearch -- update` from this skill's directory. It updates only this installation, refuses if the installation has local changes, and restarts the app when new code arrives. Report the result; never run `git pull` yourself.
 
 ## Chat updates
 
-Run `npm run coresearch -- profile:schema` for the accepted update fields. Supply JSON on stdin to `npm run coresearch -- profile:update --workspace <absolute-path>`; use a securely written temporary input file if needed, not interpolated shell text.
+Run `npm run coresearch -- profile:schema` for the accepted update fields. Supply JSON on stdin to `npm run coresearch -- profile:update`; use a securely written temporary input file if needed, not interpolated shell text.
 
 - Save only explicitly supplied information. Unknown fields stay unknown. Ask when a statement is ambiguous.
 - Scalar updates replace that field; omitted fields are preserved. Add/remove interests and constraints explicitly; do not replace earlier items implicitly.
@@ -42,11 +45,11 @@ A target is one specific professor. When the student names a lab, professor, or 
 4. Ask for links: the professor's page, the PhD programme page, and the lab website if one exists. Publication profiles and an advertised position also help. Several links of each kind are allowed.
 5. You may search for missing links, but save one only after the student confirms it belongs to this professor.
 
-Run `npm run coresearch -- target:schema` for accepted fields. Use `target:add` (JSON on stdin), `target:list`, `target:get --id <id>`, `target:update --id <id>` (JSON on stdin), and `target:remove --id <id>`, each with `--workspace`. Remove a target only when the student asks. The student may also add or edit targets in the UI; run `target:get` before relying on saved values.
+Run `npm run coresearch -- target:schema` for accepted fields. Use `target:add` (JSON on stdin), `target:list`, `target:get --id <id>`, `target:update --id <id>` (JSON on stdin), and `target:remove --id <id>`. Remove a target only when the student asks. The student may also add or edit targets in the UI; run `target:get` before relying on saved values.
 
 ## Server control
 
-`npm run coresearch -- status --workspace <absolute-path>` reports availability. `stop` stops only an instance whose saved identity matches its health response. `start` accepts `--port <number>` (default 3780).
+`npm run coresearch -- status` reports availability. `stop` stops only an instance whose saved identity matches its health response. `start` accepts `--port <number>` (default 3780).
 
 The UI refreshes saved data every two seconds while visible. The local server can outlive the chat; it does not continue agent work and does not start automatically after a computer restart.
 

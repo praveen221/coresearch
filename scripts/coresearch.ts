@@ -7,8 +7,8 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { z } from 'zod';
-import { workspacePath } from '../src/lib/database.ts';
 import { currentRevision, pullLatest } from '../src/lib/installation.ts';
+import { chooseWorkspace, currentWorkspace, rememberWorkspace, rememberedWorkspace } from '../src/lib/workspace.ts';
 import { getProfile, updateProfile } from '../src/lib/profile.ts';
 import { profilePatchSchema } from '../src/lib/profile-schema.ts';
 import { targetInputSchema, targetPatchSchema } from '../src/lib/target-schema.ts';
@@ -116,6 +116,7 @@ function run(description: string, executable: string, args: string[], capture = 
 }
 // Revision whose dependencies and build completed, so an interrupted update is retried rather than skipped.
 const installedRevision = join(packageRoot, '.next', 'coresearch-revision');
+const settings = join(packageRoot, '.workspace');
 async function update(workspace: string, requestedPort: number | undefined): Promise<unknown> {
   // Pull while the app runs; stop it only once new code has arrived.
   const { from, to } = pullLatest(packageRoot);
@@ -150,10 +151,13 @@ async function main(): Promise<unknown> {
     allowPositionals: true,
     strict: true,
   });
-  const command = z.enum(['setup', 'start', 'status', 'stop', 'update', 'profile:get', 'profile:update', 'profile:schema',
+  const command = z.enum(['setup', 'workspace', 'start', 'status', 'stop', 'update', 'profile:get', 'profile:update', 'profile:schema',
     'target:list', 'target:get', 'target:add', 'target:update', 'target:remove', 'target:schema']).parse(args.positionals[0]);
   if (args.positionals.length !== 1) throw new Error('Provide exactly one command.');
-  const workspace = workspacePath(args.values.workspace);
+  if (command === 'workspace') return { workspace: rememberedWorkspace(settings) };
+  const workspace = command === 'setup'
+    ? chooseWorkspace(settings, args.values.workspace)
+    : currentWorkspace(settings, args.values.workspace);
   const port = z.coerce.number().int().min(1024).max(65535).parse(args.values.port ?? '3780');
   function id(): number {
     if (args.values.id === undefined) throw new Error('Provide --id.');
@@ -174,6 +178,7 @@ async function main(): Promise<unknown> {
       if (build.status !== 0) throw new Error('Application build failed.');
       const revision = currentRevision(packageRoot);
       if (revision !== null) writeFileSync(installedRevision, `${revision}\n`);
+      rememberWorkspace(settings, workspace);
       return { initialized: true, workspace };
     }
     case 'start':

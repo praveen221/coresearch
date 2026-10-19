@@ -1,5 +1,4 @@
 import { mkdirSync, chmodSync } from 'node:fs';
-import { homedir } from 'node:os';
 import { isAbsolute, join, resolve } from 'node:path';
 import type { DatabaseSync as Database } from 'node:sqlite';
 import { DatabaseSync } from 'node:sqlite';
@@ -9,12 +8,10 @@ const schemaVersion = 2;
 
 export function workspacePath(explicit?: string): string {
   const selected = explicit ?? process.env['CORESEARCH_WORKSPACE'];
-  if (selected !== undefined) {
-    if (!isAbsolute(selected)) throw new Error('Workspace must be an absolute path.');
-    return resolve(selected);
-  }
-  // Visible so students can find their files; independent of where the agent was opened.
-  return join(homedir(), 'Coresearch');
+  // The CLI resolves the student's chosen workspace; the app server receives it from `start`.
+  if (selected === undefined) throw new Error('No workspace selected.');
+  if (!isAbsolute(selected)) throw new Error('Workspace must be an absolute path.');
+  return resolve(selected);
 }
 
 export function withDatabase<T>(workspace: string, operation: (db: DatabaseSync) => T): T {

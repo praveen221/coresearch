@@ -8,7 +8,7 @@ Requires [Claude Code](https://claude.com/claude-code), [Node.js 24](https://nod
 
 > Install the Coresearch skill from https://github.com/praveen221/coresearch into ~/.claude/skills/coresearch, then set it up.
 
-Your information is kept in the `Coresearch` folder in your home folder. Open Claude Code there for later sessions. To update, say “update Coresearch”; your information is not changed.
+Claude asks where to keep your research; choose any folder. Open Claude Code in that folder for later sessions. To update, say “update Coresearch”; your information is not changed.
 
 Other agents: clone this repository into their skills directory and follow [SKILL.md](SKILL.md).
 
