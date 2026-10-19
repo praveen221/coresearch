@@ -11,10 +11,16 @@ Run commands from this skill's directory, located relative to this `SKILL.md`; n
 
 ## Setup and reopen
 
-1. Use the student's existing workspace. Default: `~/.local/share/coresearch`. An explicitly chosen absolute path overrides it via `--workspace`. Keep personal data outside the installed package. For development in this repository, use `<repository>/private`.
+1. Use the student's existing workspace. Default: `~/Coresearch`, used whatever folder the agent was opened in; omit `--workspace` for it. An explicitly chosen absolute path overrides it via `--workspace`. Keep personal data outside the installed package. For development in this repository, use `<repository>/private`.
 2. First installation or package update: run `npm ci`, then `npm run coresearch -- setup --workspace <absolute-path>`. Setup creates/preserves SQLite and builds the UI. Stop an existing instance before rebuilding.
 3. Run `npm run coresearch -- start --workspace <absolute-path>`. Repeated starts reuse a healthy instance. Return the URL only after successful startup.
 4. Read saved data with `profile:get` and `target:list` (same `--workspace`) before asking for information.
+
+Code lives in this skill's directory; the student's data lives in the workspace. Updating replaces code only. Recommend that the student opens the agent in the workspace folder, so later file work there needs no extra permission.
+
+## Updating Coresearch
+
+When the student asks to update Coresearch, run `npm run coresearch -- update` (plus `--workspace` if not the default) from this skill's directory. It updates only this installation, refuses if the installation has local changes, and restarts the app when new code arrives. Report the result; never run `git pull` yourself.
 
 ## Chat updates
 

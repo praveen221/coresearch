@@ -13,7 +13,8 @@ export function workspacePath(explicit?: string): string {
     if (!isAbsolute(selected)) throw new Error('Workspace must be an absolute path.');
     return resolve(selected);
   }
-  return join(homedir(), '.local', 'share', 'coresearch');
+  // Visible so students can find their files; independent of where the agent was opened.
+  return join(homedir(), 'Coresearch');
 }
 
 export function withDatabase<T>(workspace: string, operation: (db: DatabaseSync) => T): T {
