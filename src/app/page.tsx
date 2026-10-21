@@ -6,7 +6,7 @@ import { listTargets } from '../lib/targets.ts';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
-export const metadata: Metadata = { title: 'Profile · Coresearch' };
+export const metadata: Metadata = { title: 'Profile' };
 
 export default function Page(): ReactElement {
   return <ProfileView initialProfile={getProfile()} initialTargets={listTargets()} />;

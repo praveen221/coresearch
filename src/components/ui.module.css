@@ -1,12 +1,12 @@
-.shell { display: grid; grid-template-columns: 224px minmax(0, 1fr); min-height: 100vh; }
-.sidebar { display: flex; flex-direction: column; padding: 32px 24px; border-right: 1px solid var(--cr-border); }
+.shell { display: grid; grid-template-columns: 224px minmax(0, 1fr); height: 100vh; overflow: hidden; }
+.sidebar { display: flex; flex-direction: column; padding: 32px 24px; border-right: 1px solid var(--cr-border); overflow-y: auto; overscroll-behavior: contain; }
 .brand { letter-spacing: -1px; }
 .brand span { color: var(--cr-muted); }
 .navigation { display: flex; flex-direction: column; gap: 24px; margin-top: 48px; }
 .selected { text-decoration: none; font-weight: 500; display: flex; gap: 12px; align-items: baseline; min-height: 40px; padding-top: 8px; }
 .workspace summary { cursor: pointer; min-height: 40px; display: list-item; list-style-position: inside; }
 .localNote { margin-top: auto; padding-top: 48px; }
-.main { min-width: 0; }
+.main { min-width: 0; overflow-y: auto; overscroll-behavior: contain; }
 .header { display: flex; justify-content: space-between; gap: 16px; padding: 24px 32px; border-bottom: 1px solid var(--cr-border); }
 .content { max-width: 896px; padding: 48px 48px 24px; }
 .contentWide { max-width: 1320px; padding: 48px 48px 24px; }
@@ -23,7 +23,8 @@
 .skip { position: absolute; left: -10000px; }
 .skip:focus { left: 16px; top: 8px; z-index: 1; padding: 8px; background: var(--cr-canvas); }
 @media (max-width: 640px) {
-  .shell { grid-template-columns: minmax(0, 1fr); }
+  .shell { grid-template-columns: minmax(0, 1fr); height: auto; overflow: visible; }
+  .sidebar, .main { overflow-y: visible; }
   .sidebar { border-right: 0; border-bottom: 1px solid var(--cr-border); padding: 16px 24px; }
   .navigation { margin-top: 16px; gap: 16px; }
   .localNote { display: none; }
@@ -44,7 +45,7 @@
 .navLabel { display: flex; flex-direction: column; min-width: 0; overflow-wrap: anywhere; }
 .targetLayout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 48px; align-items: start; }
 .targetMain { min-width: 0; }
-.tracks { position: sticky; top: 24px; margin-top: 32px; padding: 24px 0 0 24px; border-left: 1px solid var(--cr-border); overflow-wrap: anywhere; }
+.tracks { position: sticky; top: 0; max-height: 100vh; overflow-y: auto; overscroll-behavior: contain; margin-top: 32px; padding: 24px 8px 24px 24px; border-left: 1px solid var(--cr-border); overflow-wrap: anywhere; }
 .trackItem { padding: 12px 0; border-bottom: 1px solid var(--cr-border); }
 .trackItem a { text-decoration: none; font-weight: 500; }
 .table { width: 100%; margin-top: 16px; border-collapse: collapse; font-size: 14px; }
@@ -53,12 +54,12 @@
 .table td:first-child, .table td:nth-child(2) { white-space: nowrap; }
 .cutout { margin-top: 16px; padding: 12px 16px; background: var(--cr-soft); border: 1px solid var(--cr-border); }
 .passage { margin: 8px 0 0; font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; }
-.passage mark { background: #f1e7a8; color: var(--cr-ink); padding: 0 2px; }
+.passage mark { background: var(--cr-mark); color: var(--cr-ink); padding: 0 2px; }
 .context { color: var(--cr-muted); }
 .clipNote { margin-top: 8px; padding-left: 12px; border-left: 2px solid var(--cr-ink); }
 @media (max-width: 1000px) {
   .targetLayout { grid-template-columns: minmax(0, 1fr); gap: 0; }
-  .tracks { position: static; order: -1; border-left: 0; padding-left: 0; }
+  .tracks { position: static; order: -1; border-left: 0; padding-left: 0; max-height: none; overflow-y: visible; }
 }
 .graphFrame { margin-top: 16px; padding: 16px; overflow-x: auto; border: 1px solid var(--cr-border); background: var(--cr-canvas); }
 .graphNode { cursor: pointer; outline: none; }
@@ -72,3 +73,56 @@
 @media (max-width: 1000px) {
   .trackColumns { grid-template-columns: minmax(0, 1fr); gap: 0; }
 }
+.ref { font-size: 12px; text-decoration: none; border-bottom: 1px solid var(--cr-muted); }
+.limit { margin-top: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--cr-border); }
+.requests { margin-top: 32px; padding: 16px 24px; border: 2px solid var(--cr-ink); }
+.requestsSummary { cursor: pointer; min-height: 32px; }
+.inlineHeading { display: inline; }
+.request { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--cr-border); overflow-wrap: anywhere; }
+.file { font: inherit; font-size: 13px; max-width: 100%; }
+.caseFile { margin-top: 24px; padding: 20px 24px; border: 1px solid var(--cr-border); background: var(--cr-canvas); }
+.caseGroup { margin-top: 12px; }
+.caseLabel { text-transform: uppercase; letter-spacing: 1px; color: var(--cr-muted); }
+.verdict { font-weight: 500; }
+.meaning { margin-top: 16px; padding: 12px 16px; border-left: 3px solid var(--cr-ink); background: var(--cr-soft); }
+.conclusion { margin-top: 32px; padding: 20px 24px; border: 2px solid var(--cr-ink); }
+.tablePassage { margin: 8px 0 0; font-size: 13px; line-height: 1.6; white-space: pre-line; overflow-wrap: anywhere; }
+.tablePassage mark, .passage mark { background: var(--cr-mark); color: var(--cr-ink); padding: 0 2px; }
+.glance { margin-top: 32px; padding: 20px 24px; border: 2px solid var(--cr-ink); }
+.glanceList { list-style: none; margin: 12px 0 0; padding: 0; }
+.glanceList li { padding: 8px 0; border-top: 1px solid var(--cr-border); overflow-wrap: anywhere; }
+.statusCard { margin-top: 24px; padding: 20px 24px; border: 2px solid var(--cr-ink); overflow-wrap: anywhere; }
+.brief { margin-top: 32px; padding: 20px 24px; border: 2px solid var(--cr-ink); background: var(--cr-soft); overflow-wrap: anywhere; }
+.briefList { margin: 8px 0 0; padding-left: 20px; }
+.shortlist { margin-top: 24px; padding: 20px 24px; border: 2px solid var(--cr-ink); background: var(--cr-soft); overflow-wrap: anywhere; }
+.shortlistItems { margin: 8px 0 0; padding-left: 24px; }
+.shortlistItem { padding: 12px 0; border-top: 1px solid var(--cr-border); }
+.shortlistItem:first-child { border-top: none; }
+.briefList li { padding: 2px 0; }
+.tabs { margin-top: 24px; }
+.tabList { overflow-x: auto; flex-wrap: wrap; }
+.batch, .batchOpen { margin-top: 16px; padding: 16px 20px; border: 1px solid var(--cr-border); overflow-wrap: anywhere; }
+.batchOpen { border: 2px solid var(--cr-ink); }
+.batchTracks { margin-top: 12px; }
+.batchTracks summary, .category summary, .seedClips summary, .futurePaper summary, .categoryGroup summary { cursor: pointer; min-height: 32px; }
+.seedClips { margin-top: 8px; }
+.seed { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--cr-border); overflow-wrap: anywhere; }
+.futurePaper { margin-top: 20px; padding-top: 12px; border-top: 1px solid var(--cr-border); overflow-wrap: anywhere; }
+.categoryGroup { margin-top: 24px; }
+.category { margin-top: 8px; padding: 8px 0 8px 12px; border-left: 1px solid var(--cr-border); overflow-wrap: anywhere; }
+.paperLine { padding: 6px 0; }
+.flow { list-style: none; margin: 32px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+.stage { padding: 16px; border: 1px solid var(--cr-border); background: var(--cr-soft); overflow-wrap: anywhere; }
+.tableScroll { margin-top: 12px; overflow-x: auto; }
+.importRow { margin-top: 8px; }
+.connection { margin-top: 16px; padding: 12px 16px; border: 1px solid var(--cr-border); overflow-wrap: anywhere; }
+.cvQuote { margin: 4px 0 8px; padding-left: 12px; border-left: 2px solid var(--cr-ink); }
+.pitchEditor { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+.sortButton { all: unset; cursor: pointer; font: inherit; color: inherit; }
+.sortButton:focus-visible { outline: 2px solid var(--cr-ink); outline-offset: 2px; }
+.score { font-variant-numeric: tabular-nums; text-align: center; }
+.scoreMuted { font-variant-numeric: tabular-nums; text-align: center; color: var(--cr-muted); }
+.evidenceRow td { background: var(--cr-soft); padding: 12px 16px; white-space: normal; }
+.facets { display: grid; gap: 4px; margin-top: 8px; }
+.facet { padding: 6px 0 6px 12px; border-left: 1px solid var(--cr-border); overflow-wrap: anywhere; }
+.facet summary { cursor: pointer; min-height: 28px; }

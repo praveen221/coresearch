@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import type { ReactElement } from 'react';
 import { Box, Button, Flex, Heading, Text, Separator } from '@radix-ui/themes';
+import { uploadCv } from '../app/actions.ts';
+import { fileUrl } from './research-panels.tsx';
 import { profileSchema } from '../lib/profile-schema.ts';
 import type { Profile } from '../lib/profile-schema.ts';
 import type { Target } from '../lib/target-schema.ts';
@@ -14,6 +16,34 @@ import styles from './ui.module.css';
 function ItemList({ items }: Readonly<{ items: readonly string[] }>): ReactElement {
   if (items.length === 0) return <Text color="gray">Not provided</Text>;
   return <ul className={styles['items']}>{items.map((item) => <li key={item}>{item}</li>)}</ul>;
+}
+
+function CvSection({ profile, onSaved }: Readonly<{ profile: Profile; onSaved: (profile: Profile) => void }>): ReactElement {
+  const [file, setFile] = useState<File | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  function upload(): void {
+    if (file === null) return;
+    const form = new FormData();
+    form.set('file', file);
+    startTransition(async () => {
+      const result = await uploadCv(form);
+      if (result.ok) { onSaved(result.value); setFile(null); setMessage('Saved. Your agent quotes it exactly in pitches.'); }
+      else setMessage(result.errors.join(' '));
+    });
+  }
+  return <section aria-labelledby="cv-heading" className={styles['section']}>
+    <Heading as="h2" size="3" id="cv-heading">CV</Heading>
+    <Text as="p" mt="3">{profile.cv === null ? <Text color="gray">Not provided. Pitches quote your CV, so upload it first.</Text>
+      : <><a href={fileUrl(profile.cv.filePath)} target="_blank" rel="noreferrer">Your CV</a> · {String(profile.cv.pageCount)} page
+        {profile.cv.pageCount === 1 ? '' : 's'} · added {new Date(profile.cv.addedAt).toUTCString().slice(5, 16)}</>}</Text>
+    <Flex gap="2" mt="3" align="center" wrap="wrap">
+      <input type="file" accept="application/pdf" aria-label="CV as a PDF" className={styles['file']} disabled={pending}
+        onChange={(event) => { setFile(event.target.files?.item(0) ?? null); }} />
+      <Button variant="soft" color="gray" disabled={file === null || pending} onClick={upload}>{profile.cv === null ? 'Upload CV' : 'Replace CV'}</Button>
+    </Flex>
+    {message === null ? null : <Text as="p" size="2" mt="2" role="status">{message}</Text>}
+  </section>;
 }
 
 export function ProfileView({ initialProfile, initialTargets }: Readonly<{
@@ -38,9 +68,12 @@ export function ProfileView({ initialProfile, initialTargets }: Readonly<{
             <Heading as="h2" size="3" id="about-heading">About you</Heading>
             <dl className={styles['fields']}>
               <Field label="Name"><Value value={profile.name} /></Field>
+              <Field label="Website">{profile.website === null ? <Text color="gray">Not provided</Text>
+                : <a href={profile.website} target="_blank" rel="noreferrer">{profile.website}</a>}</Field>
               <Field label="Background"><Value value={profile.background} /></Field>
             </dl>
           </section>
+          <CvSection profile={profile} onSaved={setProfile} />
           <section aria-labelledby="interests-heading" className={styles['section']}>
             <Heading as="h2" size="3" id="interests-heading">Research interests</Heading>
             <Box mt="4"><ItemList items={profile.interests} /></Box>
@@ -55,6 +88,11 @@ export function ProfileView({ initialProfile, initialTargets }: Readonly<{
           <section aria-labelledby="constraints-heading" className={styles['section']}>
             <Heading as="h2" size="3" id="constraints-heading">Practical constraints</Heading>
             <Box mt="4"><ItemList items={profile.constraints} /></Box>
+          </section>
+          <section aria-labelledby="collaborators-heading" className={styles['section']}>
+            <Heading as="h2" size="3" id="collaborators-heading">People you have worked with</Heading>
+            <Text as="p" size="2" color="gray" mt="2">Used to find contacts you share with each professor.</Text>
+            <Box mt="4"><ItemList items={profile.collaborators} /></Box>
           </section>
           </>}
           <Separator size="4" />

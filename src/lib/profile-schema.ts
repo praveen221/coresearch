@@ -16,8 +16,12 @@ export const profilePatchSchema = z.strictObject({
   background: clearable.describe('Education, work, and research experience; null clears it.'),
   needsFunding: z.boolean().nullable().optional().describe('null means unknown.'),
   fundingNotes: clearable.describe('Funding details; null clears it.'),
+  website: z.url({ protocol: /^https?$/, error: 'Enter a full http(s) address.' }).max(2048).nullable().optional()
+    .describe('The student’s website or portfolio; read it to understand their background. null clears it.'),
   interests: changes.optional(),
   constraints: changes.optional(),
+  collaborators: changes.optional().describe('People the student has worked with, such as co-authors and advisors, as full names; used '
+    + 'to find contacts they share with each professor.'),
 }).refine((value) => Object.keys(value).length > 0, 'Provide at least one field.')
   .describe('Omitted fields are unchanged. Updates are atomic; invalid input changes nothing.');
 
@@ -26,8 +30,11 @@ export const profileSchema = z.strictObject({
   background: text.nullable(),
   needsFunding: z.boolean().nullable(),
   fundingNotes: text.nullable(),
+  website: z.string().nullable(),
   interests: items,
   constraints: items,
+  collaborators: items,
+  cv: z.strictObject({ filePath: z.string(), pageCount: z.number().int().nonnegative(), addedAt: z.iso.datetime() }).nullable(),
   updatedAt: z.iso.datetime().nullable(),
 });
 

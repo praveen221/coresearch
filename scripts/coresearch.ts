@@ -12,6 +12,14 @@ import { coreCommands } from './commands.ts';
 import { guide } from './guide.ts';
 import { isResearchCommand, researchCommands, researchOptions, runResearch } from './research-commands.ts';
 import { chooseWorkspace, currentWorkspace, rememberWorkspace, rememberedWorkspace } from '../src/lib/workspace.ts';
+import { attachCv, cvPages } from '../src/lib/cv.ts';
+import { importList, previewList, readList } from '../src/lib/import.ts';
+import {
+  citeCollaborator, editPitch, getFit, getPitch, listOutreach, savePitch, scoreFit, setPitchStatus, sharedContacts,
+} from '../src/lib/outreach.ts';
+import {
+  collaboratorCiteSchema, fitInputSchema, importInputSchema, pitchEditSchema, pitchInputSchema, pitchStatusSchema,
+} from '../src/lib/outreach-schema.ts';
 import { getProfile, updateProfile } from '../src/lib/profile.ts';
 import { profilePatchSchema } from '../src/lib/profile-schema.ts';
 import { targetInputSchema, targetPatchSchema } from '../src/lib/target-schema.ts';
@@ -162,6 +170,10 @@ async function main(): Promise<unknown> {
     if (args.values.id === undefined) throw new Error('Provide --id.');
     return targetIdSchema.parse(args.values.id);
   }
+  function targetId(): number {
+    if (args.values.target === undefined) throw new Error('Provide --target.');
+    return targetIdSchema.parse(args.values.target);
+  }
   if (isResearchCommand(command)) return runResearch(command, workspace, args.values, inputFromStdin);
   switch (command) {
     case 'setup': {
@@ -193,6 +205,36 @@ async function main(): Promise<unknown> {
     case 'profile:get': return getProfile(workspace);
     case 'profile:update': return updateProfile(await inputFromStdin(), workspace);
     case 'profile:schema': return z.toJSONSchema(profilePatchSchema, { io: 'input' });
+    case 'profile:cv': {
+      if (args.values.file === undefined) throw new Error('Provide --file with the CV as a PDF.');
+      return attachCv(workspace, args.values.file);
+    }
+    case 'profile:cv-text': {
+      const pages = cvPages(workspace);
+      if (args.values.page === undefined) return { pages: pages.length, text: pages };
+      const page = z.coerce.number().int().positive().max(pages.length).parse(args.values.page);
+      return { page, text: pages[page - 1] };
+    }
+    case 'list:preview': return previewList(workspace, await readList({
+      ...(args.values.url === undefined ? {} : { url: args.values.url }), ...(args.values.file === undefined ? {} : { file: args.values.file }),
+    }));
+    case 'list:import': return importList(workspace, await inputFromStdin());
+    case 'outreach:list': return listOutreach(workspace);
+    case 'outreach:contacts': return sharedContacts(workspace, targetId());
+    case 'contact:cite': return citeCollaborator(workspace, await inputFromStdin());
+    case 'fit:get': return getFit(workspace, targetId());
+    case 'fit:score': return scoreFit(workspace, await inputFromStdin());
+    case 'fit:schema': return {
+      score: z.toJSONSchema(fitInputSchema, { io: 'input' }), cite: z.toJSONSchema(collaboratorCiteSchema, { io: 'input' }),
+    };
+    case 'pitch:get': return getPitch(workspace, targetId());
+    case 'pitch:draft': return savePitch(workspace, await inputFromStdin());
+    case 'pitch:edit': return editPitch(workspace, targetId(), await inputFromStdin());
+    case 'pitch:status': return setPitchStatus(workspace, targetId(), await inputFromStdin());
+    case 'pitch:schema': return {
+      draft: z.toJSONSchema(pitchInputSchema, { io: 'input' }), edit: z.toJSONSchema(pitchEditSchema, { io: 'input' }),
+      status: z.toJSONSchema(pitchStatusSchema, { io: 'input' }), import: z.toJSONSchema(importInputSchema, { io: 'input' }),
+    };
     case 'target:list': return listTargets(workspace);
     case 'target:get': return getTarget(id(), workspace);
     case 'target:add': return addTarget(await inputFromStdin(), workspace);

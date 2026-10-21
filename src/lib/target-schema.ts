@@ -3,8 +3,35 @@ import { text } from './profile-schema.ts';
 
 export const labKinds = ['university', 'independent'] as const;
 export const linkKinds = ['professor', 'programme', 'university', 'lab', 'publications', 'position'] as const;
+export const regions = ['us', 'uk', 'europe', 'canada', 'asia-pacific', 'other'] as const;
+export const pathways = ['proposal', 'pitch'] as const;
+export const openings = ['yes', 'no', 'unknown'] as const;
+export const fitFacets = ['topic', 'method', 'scale', 'venue', 'skill', 'funding', 'alumni'] as const;
 export type LabKind = (typeof labKinds)[number];
 export type LinkKind = (typeof linkKinds)[number];
+export type Region = (typeof regions)[number];
+export type Pathway = (typeof pathways)[number];
+export type Opening = (typeof openings)[number];
+export type FitFacet = (typeof fitFacets)[number];
+
+export const regionLabels: Record<Region, string> = {
+  us: 'US', uk: 'UK', europe: 'Europe', canada: 'Canada', 'asia-pacific': 'Asia-Pacific', other: 'Other',
+};
+export const pathwayLabels: Record<Pathway, string> = { proposal: 'Proposal', pitch: 'Pitch' };
+export const fitLabels: Record<FitFacet, string> = {
+  topic: 'Topic', method: 'Methods', scale: 'Scale', venue: 'Venues', skill: 'Skills', funding: 'Funding', alumni: 'Alumni',
+};
+export const fitScoresSchema = z.partialRecord(z.enum(fitFacets), z.number().int().min(0).max(3).nullable());
+export type FitScores = z.infer<typeof fitScoresSchema>;
+
+export function fitTotal(scores: FitScores, facets: readonly FitFacet[] = fitFacets): number | null {
+  const known = facets.filter((facet) => scores[facet] !== undefined);
+  return known.length === 0 ? null : known.reduce((sum, facet) => sum + (scores[facet] ?? 0), 0);
+}
+
+export function defaultPathway(region: Region | null): Pathway {
+  return region === 'uk' || region === 'europe' ? 'proposal' : 'pitch';
+}
 
 export const linkUrl = z.url({ protocol: /^https?$/, error: 'Enter a full http(s) address.' }).max(2048);
 export const linkSchema = z.strictObject({
@@ -21,6 +48,22 @@ const university = text.nullable()
   .describe('Degree-granting university; for an independent lab, its partner university. null when unknown.');
 const lab = text.nullable().describe('Lab name. Required for an independent lab.');
 const links = z.array(linkSchema).max(50);
+const country = text.max(80).nullable().describe('Country of the university or lab; null when unknown.');
+const region = z.enum(regions).nullable().describe('us, uk, europe, canada, asia-pacific, or other; null when unknown. UK and '
+  + 'Europe default to the proposal path, everywhere else to the pitch path.');
+const pathway = z.enum(pathways).nullable().describe('proposal: strong tracks become a research proposal the student writes. pitch: a '
+  + 'connection pitch and an outreach draft the student edits and sends. null follows the region.');
+const notes = z.record(text.max(120), text.max(2000)).refine((value) => Object.keys(value).length <= 40, 'Keep at most 40 notes.')
+  .describe('The student’s own notes about this professor, such as the columns of an imported list.');
+const clipId = z.number().int().positive();
+const openingsInput = z.strictObject({
+  status: z.enum(openings).describe('Whether the professor says they are taking PhD students.'),
+  clipId: clipId.nullable().default(null).describe('The cutout from their page or programme that says so; required unless unknown.'),
+}).refine((value) => value.status === 'unknown' || value.clipId !== null, 'Cite the cutout that states it.');
+const deadlineInput = z.strictObject({
+  date: z.iso.date().describe('The application deadline, YYYY-MM-DD.'),
+  clipId: clipId.describe('The requirement cutout from the programme page that states the deadline.'),
+});
 
 interface Placement { labKind: LabKind; university: string | null; lab: string | null }
 const universityKnown = (value: Placement): boolean => value.labKind !== 'university' || value.university !== null;
@@ -35,6 +78,10 @@ export const targetInputSchema = z.strictObject({
   university: university.default(null),
   lab: lab.default(null),
   links: links.default([]).refine(uniqueUrls, 'Each address can be saved once.'),
+  country: country.default(null),
+  region: region.default(null),
+  pathway: pathway.default(null),
+  notes: notes.default({}),
 }).refine(universityKnown, universityRule).refine(labNamed, labRule);
 
 export const targetFieldsSchema = z.strictObject({ professor, labKind, university, lab })
@@ -54,6 +101,14 @@ export const targetPatchSchema = z.strictObject({
   university: university.optional(),
   lab: lab.optional(),
   links: linkChanges.optional(),
+  country: country.optional(),
+  region: region.optional(),
+  pathway: pathway.optional(),
+  notes: notes.optional().describe('Replaces the saved notes.'),
+  openings: openingsInput.optional(),
+  deadline: deadlineInput.nullable().optional(),
+  pitchHold: text.max(600).nullable().optional().describe('Why no outreach draft should be written, such as a programme rule against '
+    + 'AI assistance; null clears it.'),
 }).refine((value) => Object.keys(value).length > 0, 'Provide at least one field.')
   .describe('Omitted fields are unchanged. Updates are atomic; invalid input changes nothing.');
 
@@ -64,6 +119,14 @@ export const targetSchema = z.strictObject({
   university: text.nullable(),
   lab: text.nullable(),
   links,
+  country: text.nullable(),
+  region: z.enum(regions).nullable(),
+  pathway: z.enum(pathways),
+  notes: z.record(z.string(), z.string()),
+  openings: z.strictObject({ status: z.enum(openings), clipId: clipId.nullable() }),
+  deadline: z.strictObject({ date: z.string(), clipId }).nullable(),
+  pitchHold: text.nullable(),
+  fit: fitScoresSchema,
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
 });

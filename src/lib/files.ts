@@ -26,10 +26,13 @@ export function paperFileName(paper: { id: number; year: number | null; authors:
 
 export function resolveServedFile(workspace: string, requested: string): string | null {
   if (requested === '' || isAbsolute(requested) || requested.includes('\0')) return null;
-  const root = resolve(workspace, 'targets');
   const candidate = resolve(workspace, requested);
-  if (!candidate.startsWith(`${root}${sep}`) || !existsSync(candidate)) return null;
-  const real = realpathSync(candidate);
-  const realRoot = realpathSync(root);
-  return relative(realRoot, real).startsWith('..') || isAbsolute(relative(realRoot, real)) ? null : real;
+  for (const folder of ['targets', 'profile']) {
+    const root = resolve(workspace, folder);
+    if (!candidate.startsWith(`${root}${sep}`) || !existsSync(candidate)) continue;
+    const real = realpathSync(candidate);
+    const inside = relative(realpathSync(root), real);
+    return inside.startsWith('..') || isAbsolute(inside) ? null : real;
+  }
+  return null;
 }

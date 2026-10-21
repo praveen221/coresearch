@@ -20,6 +20,10 @@ The harness researches the lab, reads papers, identifies promising directions, a
 
 The outcome is five to ten defensible directions, with research questions, subquestions, supporting evidence, and a feasible multi-year plan. The student understands the work and writes the final proposal in their own words.
 
+## Paths
+
+A student may consider many professors. UK and European programmes expect a research proposal: the harness builds strong tracks and briefs, and the student writes the proposal. Elsewhere admission runs through fit with a supervisor: the harness drafts a connection pitch, grounded in the student's CV and the professor's papers, that the student edits and sends. The harness never contacts anyone.
+
 ## Starting case
 
-One student applying to Katie Seaborn's Aspirational Computing Lab. Start with this case before expanding across applications. Nobody contacts the professor.
+One student applying to Katie Seaborn's Aspirational Computing Lab and to the professors on her own list.

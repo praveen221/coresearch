@@ -9,7 +9,7 @@ import type { Draft } from '../lib/profile-draft.ts';
 import type { Profile } from '../lib/profile-schema.ts';
 import styles from './ui.module.css';
 
-type ListName = 'interests' | 'constraints';
+type ListName = 'interests' | 'constraints' | 'collaborators';
 
 function ListEditor({ label, items, onChange }: Readonly<{
   label: string; items: readonly string[]; onChange: (items: string[]) => void;
@@ -77,6 +77,9 @@ export function ProfileForm({ initialBase, latest, onSaved, onCancel }: Readonly
         <label className={styles['label']}>Name
           <TextField.Root value={draft.name} onChange={(event) => { update('name', event.target.value); }} />
         </label>
+        <label className={styles['label']}>Website or portfolio
+          <TextField.Root type="url" placeholder="https://" value={draft.website} onChange={(event) => { update('website', event.target.value); }} />
+        </label>
         <label className={styles['label']}>Background
           <TextArea rows={4} value={draft.background} onChange={(event) => { update('background', event.target.value); }} />
         </label>
@@ -110,6 +113,11 @@ export function ProfileForm({ initialBase, latest, onSaved, onCancel }: Readonly
     <section className={styles['section']}>
       <Heading as="h3" size="3">Practical constraints</Heading>
       <ListEditor label="constraint" items={draft.constraints} onChange={list('constraints')} />
+    </section>
+    <section className={styles['section']}>
+      <Heading as="h3" size="3">People you have worked with</Heading>
+      <Text as="p" size="2" color="gray" mt="2">Full names of co-authors and advisors, used to find contacts you share with each professor.</Text>
+      <ListEditor label="collaborator" items={draft.collaborators} onChange={list('collaborators')} />
     </section>
     <Flex direction="column" gap="3" py="5" role="status">
       {stale ? <Text size="2">[!] Your agent saved changes while you were editing

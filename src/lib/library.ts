@@ -1,14 +1,17 @@
-import { copyFileSync, readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
 import { parse } from 'node-html-parser';
 import { extractText, getDocumentProxy } from 'unpdf';
 import { z } from 'zod';
 import { transaction, withDatabase } from './database.ts';
-import { NotFoundError } from './errors.ts';
+import { NotFoundError, RuleError } from './errors.ts';
 import { ensureTargetFolders, paperFileName, slug } from './files.ts';
+import { citationCounts as openAlexCounts } from './openalex.ts';
 import type { Work } from './openalex.ts';
-import { sourceSchema, sourceStatusInputSchema } from './research-schema.ts';
+import { manualSourceSchema, paperRequestSchema, sourceFutureSchema, sourceSchema, sourceStatusInputSchema } from './research-schema.ts';
+import { stripRunningLines } from './quote.ts';
+import { citationCounts, openAccessCopies } from './semanticscholar.ts';
 import type { Source } from './research-schema.ts';
 
 const rowSchema = z.object({
@@ -16,6 +19,8 @@ const rowSchema = z.object({
   doi: z.string().nullable(), openalex_id: z.string().nullable(), year: z.number().nullable(), venue: z.string().nullable(),
   authors: z.string(), abstract: z.string().nullable(), pdf_urls: z.string(), file_path: z.string().nullable(),
   text_path: z.string().nullable(), page_count: z.number().nullable(), status: z.string(), status_note: z.string().nullable(),
+  request_reason: z.string().nullable(), requested_at: z.string().nullable(), cited_by: z.number().nullable(),
+  cited_at: z.string().nullable(), future_checked_at: z.string().nullable(), future_note: z.string().nullable(),
   created_at: z.string(), updated_at: z.string(),
 });
 const stringsSchema = z.array(z.string());
@@ -29,7 +34,8 @@ export function readSources(db: DatabaseSync, where: string, ...parameters: (str
     id: row.id, targetId: row.target_id, kind: row.kind, title: row.title, url: row.url, doi: row.doi,
     openalexId: row.openalex_id, year: row.year, venue: row.venue, authors: stringsSchema.parse(JSON.parse(row.authors)),
     abstract: row.abstract, filePath: row.file_path, textPath: row.text_path, pageCount: row.page_count,
-    status: row.status, statusNote: row.status_note,
+    status: row.status, statusNote: row.status_note, requestReason: row.request_reason, requestedAt: row.requested_at,
+    citedBy: row.cited_by, citedAt: row.cited_at, futureCheckedAt: row.future_checked_at, futureNote: row.future_note,
     references: cites.filter((cite) => cite.source_id === row.id).map((cite) => cite.cited_openalex_id),
     createdAt: row.created_at, updatedAt: row.updated_at,
   }));
@@ -73,15 +79,33 @@ export function savePaper(workspace: string, targetId: number, work: Work): { so
       return { source: readSource(db, existing.id), added: false };
     }
     const now = new Date().toISOString();
+    const taken = work.landingUrl !== null
+      && db.prepare('SELECT 1 FROM sources WHERE target_id = ? AND kind = \'paper\' AND url = ?').get(targetId, work.landingUrl) !== undefined;
     const result = db.prepare(`INSERT INTO sources (target_id, kind, title, url, doi, openalex_id, year, venue, authors,
       abstract, pdf_urls, status, created_at, updated_at) VALUES (?, 'paper', ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unread', ?, ?)`)
-      .run(targetId, work.title, work.landingUrl, work.doi, work.openalexId, work.year, work.venue,
+      .run(targetId, work.title, taken ? null : work.landingUrl, work.doi, work.openalexId, work.year, work.venue,
         JSON.stringify(work.authors), work.abstract, JSON.stringify(work.pdfUrls), now, now);
     const id = Number(result.lastInsertRowid);
     for (const cited of work.references) {
       db.prepare('INSERT OR IGNORE INTO citations (source_id, cited_openalex_id) VALUES (?, ?)').run(id, cited);
     }
     return { source: readSource(db, id), added: true };
+  }, 'BEGIN IMMEDIATE'));
+}
+
+export function addManualSource(workspace: string, targetId: number, input: unknown): Source {
+  const document = manualSourceSchema.parse(input);
+  return withDatabase(workspace, (db) => transaction(db, () => {
+    readTarget(db, targetId);
+    const existing = readSources(db, 'WHERE target_id = ? AND kind = \'paper\'', targetId)
+      .find((source) => source.url === document.url || titleKey(source.title) === titleKey(document.title));
+    if (existing !== undefined) return existing;
+    const now = new Date().toISOString();
+    const id = Number(db.prepare(`INSERT INTO sources (target_id, kind, title, url, year, authors, abstract, pdf_urls, status, created_at,
+      updated_at) VALUES (?, 'paper', ?, ?, ?, ?, ?, ?, 'unread', ?, ?)`).run(targetId, document.title, document.url, document.year,
+      JSON.stringify(document.authors), document.abstract, JSON.stringify(document.pdfUrl === null ? [] : [document.pdfUrl]), now, now)
+      .lastInsertRowid);
+    return readSource(db, id);
   }, 'BEGIN IMMEDIATE'));
 }
 
@@ -103,7 +127,7 @@ export function getAuthor(db: DatabaseSync, targetId: number): { id: string; nam
 const headers = { 'User-Agent': 'Coresearch (https://github.com/praveen221/coresearch)' };
 const maxBytes = 60 * 1024 * 1024;
 
-async function extractPdf(bytes: Uint8Array): Promise<string[]> {
+export async function extractPdf(bytes: Uint8Array): Promise<string[]> {
   const document = await getDocumentProxy(bytes);
   const { text } = await extractText(document, { mergePages: false });
   return text;
@@ -119,22 +143,36 @@ function storeText(workspace: string, db: DatabaseSync, source: Source, file: st
   return readSource(db, source.id);
 }
 
-export async function downloadPaper(workspace: string, id: number): Promise<Source> {
+export function addPdfCandidates(workspace: string, id: number, candidates: readonly string[]): void {
+  withDatabase(workspace, (db) => {
+    transaction(db, () => {
+      const raw = z.object({ pdf_urls: z.string() }).parse(db.prepare('SELECT pdf_urls FROM sources WHERE id = ?').get(id));
+      const urls = stringsSchema.parse(JSON.parse(raw.pdf_urls));
+      db.prepare('UPDATE sources SET pdf_urls = ? WHERE id = ?').run(JSON.stringify([...new Set([...urls, ...candidates])]), id);
+    }, 'BEGIN IMMEDIATE');
+  });
+}
+
+export async function downloadPaper(workspace: string, id: number, lookup = true): Promise<Source> {
   const { source, urls, target } = withDatabase(workspace, (db) => transaction(db, () => {
     const found = readSource(db, id);
     const raw = z.object({ pdf_urls: z.string() }).parse(db.prepare('SELECT pdf_urls FROM sources WHERE id = ?').get(id));
     return { source: found, urls: stringsSchema.parse(JSON.parse(raw.pdf_urls)), target: readTarget(db, found.targetId) };
   }));
-  if (source.kind !== 'paper') throw new Error('Only papers are downloaded; use source:page for web pages.');
+  if (source.kind !== 'paper') throw new RuleError('Only papers are downloaded; use source:page for web pages.');
   if (source.filePath !== null) return source;
+  if (lookup && source.doi !== null) {
+    const extra = (await openAccessCopies([source.doi]).catch(() => new Map<string, string[]>())).get(source.doi) ?? [];
+    urls.push(...extra.filter((url) => !urls.includes(url)));
+  }
   const failures: string[] = [];
   for (const url of urls) {
     try {
       const response = await fetch(url, { headers: { ...headers, Accept: 'application/pdf' }, signal: AbortSignal.timeout(60_000) });
       const bytes = new Uint8Array(await response.arrayBuffer());
-      if (!response.ok) throw new Error(`HTTP ${String(response.status)}`);
-      if (bytes.length > maxBytes) throw new Error('larger than 60 MB');
-      if (new TextDecoder().decode(bytes.slice(0, 5)) !== '%PDF-') throw new Error('not a PDF (likely a publisher page)');
+      if (!response.ok) throw new RuleError(`HTTP ${String(response.status)}`);
+      if (bytes.length > maxBytes) throw new RuleError('larger than 60 MB');
+      if (new TextDecoder().decode(bytes.slice(0, 5)) !== '%PDF-') throw new RuleError('not a PDF (likely a publisher page)');
       const pages = await extractPdf(bytes.slice());
       const folder = ensureTargetFolders(workspace, target);
       const file = join(folder, 'papers', `${paperFileName(source)}.pdf`);
@@ -144,8 +182,8 @@ export async function downloadPaper(workspace: string, id: number): Promise<Sour
       failures.push(`${new URL(url).hostname}: ${error instanceof Error ? error.message : 'failed'}`);
     }
   }
-  const note = urls.length === 0 ? 'No open-access copy is listed. Add a PDF to the inbox if you have access.'
-    : `No PDF could be downloaded (${failures.join('; ')}). Add a PDF to the inbox if you have access.`;
+  const note = urls.length === 0 ? 'No open-access copy is listed in OpenAlex or Semantic Scholar.'
+    : `No PDF could be downloaded (${failures.join('; ')}).`;
   return withDatabase(workspace, (db) => transaction(db, () => {
     db.prepare('UPDATE sources SET status = \'inaccessible\', status_note = ?, updated_at = ? WHERE id = ? AND file_path IS NULL')
       .run(note, new Date().toISOString(), id);
@@ -153,23 +191,45 @@ export async function downloadPaper(workspace: string, id: number): Promise<Sour
   }, 'BEGIN IMMEDIATE'));
 }
 
-export async function attachPdf(workspace: string, id: number, path: string): Promise<Source> {
-  const bytes = new Uint8Array(readFileSync(path));
-  if (new TextDecoder().decode(bytes.slice(0, 5)) !== '%PDF-') throw new Error('That file is not a PDF.');
+export async function attachPdfBytes(workspace: string, id: number, bytes: Uint8Array): Promise<Source> {
+  if (bytes.length > maxBytes) throw new RuleError('That file is larger than 60 MB.');
+  if (new TextDecoder().decode(bytes.slice(0, 5)) !== '%PDF-') throw new RuleError('That file is not a PDF.');
   const pages = await extractPdf(bytes.slice());
   return withDatabase(workspace, (db) => transaction(db, () => {
     const source = readSource(db, id);
-    if (source.kind !== 'paper') throw new Error('PDFs can only be attached to papers.');
+    if (source.kind !== 'paper') throw new RuleError('PDFs can only be attached to papers.');
     const folder = ensureTargetFolders(workspace, readTarget(db, source.targetId));
     const file = join(folder, 'papers', `${paperFileName(source)}.pdf`);
-    copyFileSync(path, join(workspace, file));
+    writeFileSync(join(workspace, file), bytes);
     return storeText(workspace, db, source, file, pages, 'unread');
   }, 'BEGIN IMMEDIATE'));
 }
 
-function pageText(html: string): { title: string | null; text: string } {
-  const root = parse(html);
-  for (const node of root.querySelectorAll('script, style, noscript, svg, template')) node.remove();
+export function attachPdf(workspace: string, id: number, path: string): Promise<Source> {
+  return attachPdfBytes(workspace, id, new Uint8Array(readFileSync(path)));
+}
+
+export function requestPaper(workspace: string, id: number, input: unknown): Source {
+  const { reason } = paperRequestSchema.parse(input);
+  return withDatabase(workspace, (db) => transaction(db, () => {
+    const source = readSource(db, id);
+    if (source.kind !== 'paper') throw new RuleError('Only papers can be requested.');
+    if (source.filePath !== null) throw new RuleError('This paper is already available; read it with source:text.');
+    db.prepare('UPDATE sources SET request_reason = ?, requested_at = ?, updated_at = ? WHERE id = ?')
+      .run(reason, new Date().toISOString(), new Date().toISOString(), id);
+    return readSource(db, id);
+  }, 'BEGIN IMMEDIATE'));
+}
+
+export function isBotCheck(text: string): boolean {
+  return text.length < 3000
+    && /captcha|verify (that )?you are (a )?human|are you a robot|checking your browser|access denied|client challenge|just a moment|attention required|enable javascript and cookies/i
+      .test(text);
+}
+
+export function pageText(html: string): { title: string | null; text: string } {
+  const root = parse(html.replace(/<!doctype[^>]*>/gi, ''));
+  for (const node of root.querySelectorAll('script, style, noscript, svg, template, nav')) node.remove();
   const title = root.querySelector('title')?.text.trim() ?? null;
   return { title: title === '' ? null : title, text: root.structuredText.replace(/\n{3,}/g, '\n\n').trim() };
 }
@@ -177,9 +237,10 @@ function pageText(html: string): { title: string | null; text: string } {
 export async function savePage(workspace: string, targetId: number, url: string): Promise<Source> {
   const parsed = z.url({ protocol: /^https?$/ }).parse(url);
   const response = await fetch(parsed, { headers: { ...headers, Accept: 'text/html' }, signal: AbortSignal.timeout(30_000) });
-  if (!response.ok) throw new Error(`The page returned HTTP ${String(response.status)}.`);
+  if (!response.ok) throw new RuleError(`The page returned HTTP ${String(response.status)}.`);
   const { title, text } = pageText(await response.text());
-  if (text.length < 40) throw new Error('The page has almost no readable text (it may need JavaScript); summarize it by hand.');
+  if (text.length < 40) throw new RuleError('The page has almost no readable text (it may need JavaScript); summarize it by hand.');
+  if (isBotCheck(text)) throw new RuleError('The site served a bot check instead of the page; ask the student to save it as a PDF and upload it.');
   return withDatabase(workspace, (db) => transaction(db, () => {
     const target = readTarget(db, targetId);
     const folder = ensureTargetFolders(workspace, target);
@@ -195,8 +256,9 @@ export async function savePage(workspace: string, targetId: number, url: string)
 }
 
 export function sourcePages(workspace: string, source: Source): string[] {
-  if (source.textPath === null) throw new Error('This source has no extracted text yet; download or attach it first.');
-  return stringsSchema.parse(JSON.parse(readFileSync(join(workspace, source.textPath), 'utf8')));
+  if (source.textPath === null) throw new RuleError('This source has no extracted text yet; download or attach it first.');
+  const pages = stringsSchema.parse(JSON.parse(readFileSync(join(workspace, source.textPath), 'utf8')));
+  return source.kind === 'paper' ? stripRunningLines(pages) : pages;
 }
 
 export function setSourceStatus(workspace: string, id: number, input: unknown): Source {
@@ -204,13 +266,76 @@ export function setSourceStatus(workspace: string, id: number, input: unknown): 
   return withDatabase(workspace, (db) => transaction(db, () => {
     const source = readSource(db, id);
     if ((status === 'full' || status === 'partial') && source.textPath === null) {
-      throw new Error('A paper without an extracted text cannot be marked as read; mark it abstract or inaccessible.');
+      throw new RuleError('A paper without an extracted text cannot be marked as read; mark it abstract or inaccessible.');
     }
     if (status === 'abstract' && source.abstract === null && source.textPath === null) {
-      throw new Error('This paper has no abstract on record.');
+      throw new RuleError('This paper has no abstract on record.');
     }
+    const kept = status !== 'inaccessible' && readingDepth.indexOf(status) < readingDepth.indexOf(source.status) ? source.status : status;
+    const joined = [...new Set([source.statusNote, note].filter((item): item is string => item !== null))].join('; ').slice(-2000);
+    const combined = kept !== source.status ? note : joined === '' ? null : joined;
     db.prepare('UPDATE sources SET status = ?, status_note = ?, updated_at = ? WHERE id = ?')
-      .run(status, note, new Date().toISOString(), id);
+      .run(kept, combined, new Date().toISOString(), id);
     return readSource(db, id);
+  }, 'BEGIN IMMEDIATE'));
+}
+
+const readingDepth: readonly string[] = ['unread', 'abstract', 'partial', 'full'];
+
+export function markFutureScanned(workspace: string, id: number, input: unknown): Source {
+  const { note } = sourceFutureSchema.parse(input);
+  return withDatabase(workspace, (db) => transaction(db, () => {
+    const source = readSource(db, id);
+    if (source.textPath === null) throw new RuleError('Scan a paper for future work only once its text is saved.');
+    db.prepare('UPDATE sources SET future_checked_at = ?, future_note = ?, updated_at = ? WHERE id = ?')
+      .run(new Date().toISOString(), note, new Date().toISOString(), id);
+    return readSource(db, id);
+  }, 'BEGIN IMMEDIATE'));
+}
+
+function citationKey(source: Source): string | null {
+  const arxiv = /arxiv\.org\/(?:abs|pdf)\/([0-9]{4}\.[0-9]{4,5})/i.exec(source.url ?? '')?.[1]
+    ?? /10\.48550\/arxiv\.([0-9]{4}\.[0-9]{4,5})/i.exec(source.doi ?? '')?.[1];
+  if (arxiv !== undefined) return `ARXIV:${arxiv}`;
+  if (source.doi !== null) return `DOI:${source.doi}`;
+  const doi = /doi\.org\/(10\.[^\s?#]+)/i.exec(source.url ?? '')?.[1];
+  return doi === undefined ? null : `DOI:${doi}`;
+}
+
+function sourceDoi(source: Source): string | null {
+  const arxiv = /arxiv\.org\/(?:abs|pdf)\/([0-9]{4}\.[0-9]{4,5})/i.exec(source.url ?? '')?.[1];
+  const doi = source.doi ?? /doi\.org\/(10\.[^\s?#]+)/i.exec(source.url ?? '')?.[1] ?? (arxiv === undefined ? null : `10.48550/arxiv.${arxiv}`);
+  return doi === null ? null : doi.toLowerCase();
+}
+
+export async function refreshCitations(workspace: string, targetId: number): Promise<{
+  checked: number; semanticScholar: number; openAlex: number; missing: string[];
+}> {
+  const papers = listSources(workspace, targetId).filter((source) => source.kind === 'paper');
+  const keys = new Map(papers.flatMap((source) => {
+    const key = citationKey(source);
+    return key === null ? [] : [[source.id, key] as const];
+  }));
+  const scholar = await citationCounts([...new Set(keys.values())]);
+  const counts = new Map<number, { count: number; from: 'semanticScholar' | 'openAlex' }>();
+  for (const [id, key] of keys) {
+    const count = scholar.get(key);
+    if (count !== undefined) counts.set(id, { count, from: 'semanticScholar' });
+  }
+  const rest = papers.filter((source) => !counts.has(source.id));
+  const dois = [...new Set(rest.flatMap((source) => sourceDoi(source) ?? []))];
+  const ids = [...new Set(rest.flatMap((source) => source.openalexId ?? []))];
+  const alex = rest.length === 0 ? { byDoi: new Map<string, number>(), byId: new Map<string, number>() } : await openAlexCounts(dois, ids);
+  for (const source of rest) {
+    const doi = sourceDoi(source);
+    const count = (source.openalexId === null ? undefined : alex.byId.get(source.openalexId)) ?? (doi === null ? undefined : alex.byDoi.get(doi));
+    if (count !== undefined) counts.set(source.id, { count, from: 'openAlex' });
+  }
+  const stamp = new Date().toISOString();
+  return withDatabase(workspace, (db) => transaction(db, () => {
+    for (const [id, { count }] of counts) db.prepare('UPDATE sources SET cited_by = ?, cited_at = ? WHERE id = ?').run(count, stamp, id);
+    const tally = (from: string): number => [...counts.values()].filter((item) => item.from === from).length;
+    return { checked: papers.length, semanticScholar: tally('semanticScholar'), openAlex: tally('openAlex'),
+      missing: papers.filter((source) => !counts.has(source.id)).map((source) => `${String(source.id)}: ${source.title.slice(0, 60)}`) };
   }, 'BEGIN IMMEDIATE'));
 }

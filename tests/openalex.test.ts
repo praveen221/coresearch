@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { toWork } from '../src/lib/openalex.ts';
+import { limitMessage, toWork } from '../src/lib/openalex.ts';
 
 void test('OpenAlex records become works with a rebuilt abstract, short ids, and PDF candidates', () => {
   const work = toWork({
@@ -30,4 +30,9 @@ void test('records without abstracts or open copies stay explicit', () => {
   assert.equal(work.abstract, null);
   assert.deepEqual(work.pdfUrls, []);
   assert.throws(() => toWork({ display_name: 'No id' }));
+});
+
+void test('a spent daily allowance says when it resets and how to continue', () => {
+  assert.match(limitMessage('10415'), /resets in about 3 h\..*OPENALEX_API_KEY.*paper:document/);
+  assert.doesNotMatch(limitMessage(null), /resets/);
 });

@@ -1,7 +1,8 @@
 'use client';
 
 import type { ReactElement, ReactNode } from 'react';
-import { Box, Text } from '@radix-ui/themes';
+import { Box, Flex, Text } from '@radix-ui/themes';
+import { AppearanceToggle } from './appearance-toggle.tsx';
 import { targetListSchema } from '../lib/target-schema.ts';
 import type { Target } from '../lib/target-schema.ts';
 import { useLive } from './use-live.ts';
@@ -20,10 +21,13 @@ export function Value({ value }: Readonly<{ value: string | null }>): ReactEleme
 }
 
 export function Shell({ current, initialTargets, section, step, wide = false, children }: Readonly<{
-  current: 'profile' | 'ideas' | 'new' | number; initialTargets: Target[]; section: string; step: string;
+  current: 'profile' | 'ideas' | 'new' | 'method' | 'outreach' | number; initialTargets: Target[]; section: string; step: string;
   wide?: boolean; children: ReactNode;
 }>): ReactElement {
   const { value: targets } = useLive('/api/targets', targetListSchema, initialTargets);
+  const labs = targets.filter((target) => target.pathway === 'proposal');
+  const pitches = targets.filter((target) => target.pathway === 'pitch');
+  const pitchOpen = pitches.some((target) => target.id === current);
   function link(href: string, selected: boolean, label: string, detail: string | null = null): ReactElement {
     return <a href={href} aria-current={selected ? 'page' : undefined} className={selected ? styles['selected'] : styles['navLink']}>
       <span aria-hidden="true" className={styles['navMarker']}>{selected ? '[·]' : '[ ]'}</span>
@@ -41,18 +45,20 @@ export function Shell({ current, initialTargets, section, step, wide = false, ch
           <details open className={styles['workspace']}>
             <summary>Workspace</summary>
             <ul className={styles['targets']}>
-              {targets.map((target) => <li key={target.id}>{link(`/targets/${String(target.id)}`, current === target.id, target.professor,
+              {labs.map((target) => <li key={target.id}>{link(`/targets/${String(target.id)}`, current === target.id, target.professor,
                 target.lab ?? target.university ?? 'Independent lab')}</li>)}
               <li>{link('/targets/new', current === 'new', 'Add target')}</li>
             </ul>
           </details>
+          {link('/outreach', current === 'outreach' || pitchOpen, 'Outreach', pitches.length === 0 ? null : `${String(pitches.length)} professors to pitch`)}
+          {link('/method', current === 'method', 'How it works')}
         </nav>
         <Text size="2" color="gray" className={styles['localNote']}>Local workspace<br />Stored on this computer</Text>
       </aside>
       <main id="content" className={styles['main']}>
         <header className={styles['header']}>
           <Text size="2" color="gray">{section}</Text>
-          <Text size="2" color="gray">{step}</Text>
+          <Flex gap="4" align="center"><Text size="2" color="gray">{step}</Text><AppearanceToggle /></Flex>
         </header>
         <Box className={wide ? styles['contentWide'] : styles['content']}>{children}</Box>
       </main>

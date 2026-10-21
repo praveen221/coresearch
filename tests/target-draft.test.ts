@@ -6,7 +6,8 @@ import type { Target } from '../src/lib/target-schema.ts';
 
 const base: Target = {
   id: 1, professor: 'Example Professor', labKind: 'university', university: 'Example University', lab: null,
-  links: [{ kind: 'professor', url: 'https://example.edu/p' }],
+  links: [{ kind: 'professor', url: 'https://example.edu/p' }], country: null, region: null, pathway: 'pitch', notes: {},
+  openings: { status: 'unknown', clipId: null }, deadline: null, pitchHold: null, fit: {},
   createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z',
 };
 
@@ -14,6 +15,7 @@ void test('a new form produces valid input; blank optional fields become null', 
   const input = toTargetInput({ ...emptyTargetDraft, professor: ' Example Professor ', university: 'Example University', lab: ' ' });
   assert.deepEqual(targetInputSchema.parse(input), {
     professor: 'Example Professor', labKind: 'university', university: 'Example University', lab: null, links: [],
+    country: null, region: null, pathway: null, notes: {},
   });
 });
 

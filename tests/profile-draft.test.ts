@@ -5,8 +5,8 @@ import { profilePatchSchema } from '../src/lib/profile-schema.ts';
 import type { Profile } from '../src/lib/profile-schema.ts';
 
 const base: Profile = {
-  name: 'Example Student', background: null, needsFunding: null, fundingNotes: null,
-  interests: ['Voice agents'], constraints: [], updatedAt: '2026-01-01T00:00:00.000Z',
+  name: 'Example Student', background: null, needsFunding: null, fundingNotes: null, website: null,
+  interests: ['Voice agents'], constraints: [], collaborators: [], cv: null, updatedAt: '2026-01-01T00:00:00.000Z',
 };
 
 void test('an unchanged form produces no patch', () => {

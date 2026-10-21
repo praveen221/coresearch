@@ -4,13 +4,22 @@ import type { DatabaseSync as Database } from 'node:sqlite';
 import { DatabaseSync } from 'node:sqlite';
 
 const applicationId = 0x43525348;
-const schemaVersion = 3;
+const schemaVersion = 6;
 
 export function workspacePath(explicit?: string): string {
   const selected = explicit ?? process.env['CORESEARCH_WORKSPACE'];
   if (selected === undefined) throw new Error('No workspace selected.');
   if (!isAbsolute(selected)) throw new Error('Workspace must be an absolute path.');
   return resolve(selected);
+}
+
+type Table = 'profile' | 'targets' | 'tracks' | 'sources' | 'track_sources' | 'collaborators';
+
+function addColumns(db: DatabaseSync, table: Table, columns: readonly string[], type: 'TEXT' | 'INTEGER' = 'TEXT'): void {
+  const existing = new Set(db.prepare(`PRAGMA table_info(${table})`).all().map((row) => String(row['name'])));
+  for (const column of columns) {
+    if (!existing.has(column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+  }
 }
 
 export function withDatabase<T>(workspace: string, operation: (db: DatabaseSync) => T): T {
@@ -145,9 +154,98 @@ export function withDatabase<T>(workspace: string, operation: (db: DatabaseSync)
         note TEXT,
         created_at TEXT NOT NULL
       ) STRICT;
+      CREATE TABLE IF NOT EXISTS settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      ) STRICT;
+      CREATE TABLE IF NOT EXISTS batches (
+        id INTEGER PRIMARY KEY,
+        target_id INTEGER NOT NULL REFERENCES targets (id) ON DELETE CASCADE,
+        number INTEGER NOT NULL CHECK (number > 0),
+        status TEXT NOT NULL CHECK (status IN ('open', 'closed')),
+        size INTEGER CHECK (size > 0),
+        approval TEXT,
+        lessons TEXT,
+        created_at TEXT NOT NULL,
+        closed_at TEXT,
+        UNIQUE (target_id, number)
+      ) STRICT;
+      CREATE TABLE IF NOT EXISTS seeds (
+        id INTEGER PRIMARY KEY,
+        target_id INTEGER NOT NULL REFERENCES targets (id) ON DELETE CASCADE,
+        batch_id INTEGER REFERENCES batches (id) ON DELETE SET NULL,
+        kind TEXT NOT NULL,
+        text TEXT NOT NULL CHECK (length(trim(text)) > 0),
+        clip_ids TEXT NOT NULL,
+        track_id INTEGER REFERENCES tracks (id) ON DELETE SET NULL,
+        status TEXT NOT NULL CHECK (status IN ('open', 'used', 'set-aside')),
+        note TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      ) STRICT;
+      CREATE TABLE IF NOT EXISTS categories (
+        id INTEGER PRIMARY KEY,
+        target_id INTEGER NOT NULL REFERENCES targets (id) ON DELETE CASCADE,
+        parent_id INTEGER REFERENCES categories (id) ON DELETE CASCADE,
+        kind TEXT NOT NULL CHECK (kind IN ('lab', 'institution', 'theme')),
+        name TEXT NOT NULL CHECK (length(trim(name)) > 0),
+        description TEXT,
+        created_at TEXT NOT NULL
+      ) STRICT;
+      CREATE TABLE IF NOT EXISTS source_categories (
+        source_id INTEGER NOT NULL REFERENCES sources (id) ON DELETE CASCADE,
+        category_id INTEGER NOT NULL REFERENCES categories (id) ON DELETE CASCADE,
+        PRIMARY KEY (source_id, category_id)
+      ) STRICT;
+      CREATE TABLE IF NOT EXISTS collaborators (
+        id INTEGER PRIMARY KEY,
+        description TEXT NOT NULL UNIQUE CHECK (length(trim(description)) > 0)
+      ) STRICT;
+      CREATE TABLE IF NOT EXISTS pitches (
+        target_id INTEGER PRIMARY KEY REFERENCES targets (id) ON DELETE CASCADE,
+        connections TEXT NOT NULL,
+        question TEXT NOT NULL,
+        question_check TEXT NOT NULL,
+        subject TEXT NOT NULL,
+        body TEXT NOT NULL,
+        status TEXT NOT NULL CHECK (status IN ('draft', 'sent', 'replied', 'declined')),
+        status_at TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      ) STRICT;
+      CREATE TABLE IF NOT EXISTS fit_facets (
+        target_id INTEGER NOT NULL REFERENCES targets (id) ON DELETE CASCADE,
+        facet TEXT NOT NULL CHECK (facet IN ('topic', 'method', 'scale', 'venue', 'skill', 'funding', 'alumni')),
+        score INTEGER CHECK (score BETWEEN 0 AND 3),
+        finding TEXT NOT NULL,
+        reason TEXT NOT NULL,
+        evidence TEXT NOT NULL,
+        reviewer TEXT NOT NULL,
+        scored_at TEXT NOT NULL,
+        PRIMARY KEY (target_id, facet)
+      ) STRICT;
       PRAGMA application_id = ${String(applicationId)};
       PRAGMA user_version = ${String(schemaVersion)};
       COMMIT;
+    `);
+    addColumns(db, 'profile', ['website', 'cv_file', 'cv_text', 'cv_added_at']);
+    addColumns(db, 'profile', ['cv_pages'], 'INTEGER');
+    addColumns(db, 'targets', ['country', 'region', 'pathway', 'notes', 'openings', 'deadline', 'pitch_hold']);
+    addColumns(db, 'targets', ['openings_clip_id', 'deadline_clip_id'], 'INTEGER');
+    addColumns(db, 'tracks', ['rationale', 'stop_reason', 'next_steps', 'brief', 'research_questions', 'contribution', 'kill_criterion',
+      'kill_reason', 'seed_ids', 'score']);
+    addColumns(db, 'tracks', ['batch_id', 'prediction'], 'INTEGER');
+    addColumns(db, 'sources', ['request_reason', 'requested_at', 'cited_at', 'future_checked_at', 'future_note']);
+    addColumns(db, 'sources', ['cited_by'], 'INTEGER');
+    addColumns(db, 'track_sources', ['verdict', 'assessment', 'assessed_at']);
+    addColumns(db, 'collaborators', ['cv_quote', 'cv_before', 'cv_after', 'note']);
+    addColumns(db, 'collaborators', ['cv_page'], 'INTEGER');
+    db.exec(`
+      INSERT INTO batches (target_id, number, status, created_at)
+        SELECT target_id, 1, 'open', min(created_at) FROM tracks
+        WHERE batch_id IS NULL AND target_id NOT IN (SELECT target_id FROM batches) GROUP BY target_id;
+      UPDATE tracks SET batch_id = (SELECT id FROM batches WHERE batches.target_id = tracks.target_id ORDER BY number LIMIT 1)
+        WHERE batch_id IS NULL;
     `);
     return operation(db);
   } finally {

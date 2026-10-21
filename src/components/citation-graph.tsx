@@ -16,8 +16,8 @@ const top = 32;
 
 const fills: Record<SourceStatus, { fill: string; text: string; dash: string | undefined }> = {
   unread: { fill: 'var(--cr-canvas)', text: 'var(--cr-ink)', dash: undefined },
-  abstract: { fill: '#e9e6e6', text: 'var(--cr-ink)', dash: undefined },
-  partial: { fill: '#b9b4b4', text: 'var(--cr-ink)', dash: undefined },
+  abstract: { fill: 'var(--cr-fill-light)', text: 'var(--cr-ink)', dash: undefined },
+  partial: { fill: 'var(--cr-fill-mid)', text: 'var(--cr-ink)', dash: undefined },
   full: { fill: 'var(--cr-ink)', text: 'var(--cr-canvas)', dash: undefined },
   inaccessible: { fill: 'var(--cr-canvas)', text: 'var(--cr-muted)', dash: '4 3' },
 };

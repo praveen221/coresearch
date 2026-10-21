@@ -2,17 +2,27 @@
 
 import { useState, useTransition } from 'react';
 import type { ReactElement } from 'react';
-import { Button, Flex, Heading, Separator, Text } from '@radix-ui/themes';
+import { Button, Flex, Heading, Separator, Tabs, Text } from '@radix-ui/themes';
 import { deleteTarget } from '../app/actions.ts';
 import { linkKinds, targetListSchema } from '../lib/target-schema.ts';
 import type { LinkKind, Target } from '../lib/target-schema.ts';
 import { Field, Shell, Value, targetName } from './shell.tsx';
 import { TargetForm, linkLabels } from './target-form.tsx';
-import { Library, Requirements, TrackList } from './research-panels.tsx';
+import { BatchesPanel, LibraryTree, SeedsPanel } from './loop-panels.tsx';
+import { PaperRequests, Requirements, ResearchStatus, Shortlist, TrackList } from './research-panels.tsx';
 import { researchSchema } from '../lib/research-schema.ts';
 import type { Research } from '../lib/research-schema.ts';
+import { OutreachPanel } from './outreach-view.tsx';
+import type { TargetOutreach } from '../lib/outreach-schema.ts';
 import { useLive } from './use-live.ts';
 import styles from './ui.module.css';
+
+const tabs: { value: string; label: string }[] = [
+  { value: 'shortlist', label: 'Shortlist' }, { value: 'outreach', label: 'Outreach' }, { value: 'status', label: 'Status' },
+  { value: 'batches', label: 'Batches' },
+  { value: 'seeds', label: 'Seeds' }, { value: 'library', label: 'Library' }, { value: 'requirements', label: 'Requirements' },
+  { value: 'details', label: 'Details' },
+];
 
 function recommendedKinds(target: Target): LinkKind[] {
   return target.labKind === 'independent' ? ['professor', 'lab', 'programme'] : ['professor', 'programme'];
@@ -29,8 +39,8 @@ export function NewTargetView({ initialTargets }: Readonly<{ initialTargets: Tar
   </Shell>;
 }
 
-export function TargetView({ initialTargets, initialResearch, id }: Readonly<{
-  initialTargets: Target[]; initialResearch: Research; id: number;
+export function TargetView({ initialTargets, initialResearch, id, initialOutreach }: Readonly<{
+  initialTargets: Target[]; initialResearch: Research; id: number; initialOutreach: TargetOutreach;
 }>): ReactElement {
   const { value: targets, setValue: setTargets, failed } = useLive('/api/targets', targetListSchema, initialTargets);
   const { value: research } = useLive(`/api/targets/${String(id)}/research`, researchSchema, initialResearch);
@@ -59,10 +69,26 @@ export function TargetView({ initialTargets, initialResearch, id }: Readonly<{
     <Text as="p" size="2" color="gray">[ Target ]</Text>
     <Heading as="h1" size="7" className={styles['title']}>{target === null ? 'Target' : targetName(target)}</Heading>
     <div className={styles['targetLayout']}><div className={styles['targetMain']}>
+    <PaperRequests sources={research.sources} />
+    <Tabs.Root defaultValue={target?.pathway === 'pitch' ? 'outreach' : 'shortlist'} className={styles['tabs']}>
+      <Tabs.List className={styles['tabList']}>
+        {tabs.map((tab) => <Tabs.Trigger key={tab.value} value={tab.value}>{tab.label}</Tabs.Trigger>)}
+      </Tabs.List>
+      <Tabs.Content value="shortlist">
+        {research.tracks.some((track) => track.status === 'strong' && track.brief !== null) ? <Shortlist research={research} />
+          : <Text as="p" size="2" color="gray" mt="4">No direction has survived the audit yet. Strong tracks with briefs appear here.</Text>}
+      </Tabs.Content>
+      <Tabs.Content value="outreach">{target === null ? null : <OutreachPanel target={target} research={research} initial={initialOutreach} />}</Tabs.Content>
+      <Tabs.Content value="status"><ResearchStatus research={research} /></Tabs.Content>
+      <Tabs.Content value="batches"><BatchesPanel research={research} targetId={id} /></Tabs.Content>
+      <Tabs.Content value="seeds"><SeedsPanel research={research} /></Tabs.Content>
+      <Tabs.Content value="library"><LibraryTree research={research} /></Tabs.Content>
+      <Tabs.Content value="requirements"><Requirements research={research} /></Tabs.Content>
+      <Tabs.Content value="details">
     {editing !== null ? <TargetForm initialBase={editing} latest={target}
       onSaved={(saved) => { setTargets(targets.map((item) => item.id === saved.id ? saved : item)); setEditing(null); }}
       onCancel={() => { setEditing(null); }} /> : target === null ? null : <>
-      <Flex justify="between" align="start" gap="4" wrap="wrap">
+      <Flex justify="between" align="start" gap="4" wrap="wrap" mt="6">
         <Text as="p" color="gray">Edit these details here, or ask your agent.</Text>
         <Button variant="soft" color="gray" onClick={() => { setEditing(target); }}>Edit target</Button>
       </Flex>
@@ -87,8 +113,6 @@ export function TargetView({ initialTargets, initialResearch, id }: Readonly<{
         {recommendedKinds(target).filter((kind) => !target.links.some((link) => link.kind === kind)).map((kind) =>
           <Text key={kind} as="p" size="2" color="gray" mt="2">[ ] {linkLabels[kind]} not added yet</Text>)}
       </section>
-      <Requirements research={research} />
-      <Library research={research} />
       <section aria-labelledby="remove-heading" className={styles['section']}>
         <Heading as="h2" size="3" id="remove-heading">Remove</Heading>
         <Flex gap="3" mt="4" wrap="wrap" align="center">
@@ -101,6 +125,8 @@ export function TargetView({ initialTargets, initialResearch, id }: Readonly<{
         {removeError === null ? null : <Text as="p" size="2" mt="2" role="alert">[!] {removeError}</Text>}
       </section>
     </>}
+      </Tabs.Content>
+    </Tabs.Root>
     </div><TrackList research={research} /></div>
     <Separator size="4" mt="6" />
     <Flex py="5" role="status">

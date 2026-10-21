@@ -58,7 +58,7 @@ void test('CLI adds, reads, updates, and removes targets, and prints both target
     assert.equal(run(['target:add'], JSON.stringify({ professor: 'Example Professor', labKind: 'independent' })).status, 1);
     const schemas = z.object({ add: z.object({ properties: z.record(z.string(), z.unknown()) }), update: z.object({}) })
       .parse(JSON.parse(run(['target:schema']).stdout));
-    assert.deepEqual(Object.keys(schemas.add.properties), ['professor', 'labKind', 'university', 'lab', 'links']);
+    assert.deepEqual(Object.keys(schemas.add.properties), ['professor', 'labKind', 'university', 'lab', 'links', 'country', 'region', 'pathway', 'notes']);
     assert.equal(run(['target:remove', '--id', id]).status, 0);
     assert.equal(run(['target:remove', '--id', id]).status, 1);
   } finally { rmSync(workspace, { recursive: true, force: true }); }
@@ -79,8 +79,11 @@ void test('CLI saves ideas, prints the research guide and schemas, and reports r
       .parse(JSON.parse(run(['guide']).stdout));
     assert.ok(guide.steps.length >= 8);
     const schemas = z.record(z.string(), z.unknown()).parse(JSON.parse(run(['research:schema']).stdout));
-    assert.deepEqual(Object.keys(schemas), ['idea:add', 'source:status', 'clip:add', 'track:add', 'track:update', 'track:link', 'track:log']);
-    assert.match(run(['track:add'], JSON.stringify({ targetId: 7, origin: 'agent', title: 'T', question: 'Q?' })).stderr, /No target with id 7/);
+    assert.deepEqual(Object.keys(schemas), ['idea:add', 'paper:document', 'source:status', 'source:future', 'source:categorize',
+      'category:add', 'paper:request', 'clip:add', 'seed:add', 'seed:update', 'batch:start', 'batch:close', 'track:add', 'track:approve',
+      'track:assess', 'track:brief', 'track:score', 'track:update', 'track:link', 'track:log', 'settings:update']);
+    assert.match(run(['track:add'], JSON.stringify({ targetId: 7, origin: 'agent', title: 'T', question: 'Q?', rationale: 'R.' })).stderr,
+      /No target with id 7/);
     assert.match(run(['source:get', '--id', '3']).stderr, /No source with id 3/);
     assert.match(run(['papers:discover', '--target', '1']).stderr, /Provide --author/);
   } finally { rmSync(workspace, { recursive: true, force: true }); }

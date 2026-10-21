@@ -92,10 +92,20 @@ export function toWork(raw: unknown): Work {
   };
 }
 
+export function limitMessage(retryAfter: string | null): string {
+  const seconds = Number(retryAfter);
+  const reset = Number.isFinite(seconds) && seconds > 0 ? ` It resets in about ${String(Math.ceil(seconds / 3600))} h.` : '';
+  return `OpenAlex’s daily allowance is used up.${reset} Set OPENALEX_API_KEY to a free key from openalex.org to raise it; `
+    + 'meanwhile find papers on the web and register open copies with paper:document.';
+}
+
 async function get(path: string, parameters: Record<string, string>): Promise<unknown> {
   const url = new URL(path, api);
   for (const [key, value] of Object.entries(parameters)) url.searchParams.set(key, value);
+  const key = process.env['OPENALEX_API_KEY'];
+  if (key !== undefined && key !== '') url.searchParams.set('api_key', key);
   const response = await fetch(url, { headers, signal: AbortSignal.timeout(30_000) });
+  if (response.status === 429) throw new Error(limitMessage(response.headers.get('retry-after')));
   if (!response.ok) throw new Error(`OpenAlex request failed (${String(response.status)}): ${url.pathname}`);
   return response.json();
 }
@@ -122,6 +132,26 @@ export async function searchWorks(query: string, since: string | null, limit: nu
     search: query, 'per-page': String(limit), ...(since === null ? {} : { filter: `from_publication_date:${since}` }),
   }));
   return { total: data.meta.count, works: data.results.map(toWork) };
+}
+
+const countsSchema = z.object({ results: z.array(z.object({ id: z.string(), doi: z.string().nullable().optional(), cited_by_count: z.number() })) });
+
+export async function citationCounts(dois: readonly string[], ids: readonly string[]): Promise<{ byDoi: Map<string, number>; byId: Map<string, number> }> {
+  const byDoi = new Map<string, number>();
+  const byId = new Map<string, number>();
+  const lookups = [...dois.map((doi) => ['doi', doi] as const), ...ids.map((id) => ['ids.openalex', id] as const)];
+  for (const field of ['doi', 'ids.openalex'] as const) {
+    const values = lookups.filter(([kind]) => kind === field).map(([, value]) => value);
+    for (let index = 0; index < values.length; index += 50) {
+      const data = countsSchema.parse(await get('/works', { filter: `${field}:${values.slice(index, index + 50).join('|')}`,
+        'per-page': '50', select: 'id,doi,cited_by_count' }));
+      for (const work of data.results) {
+        byId.set(shortId(work.id), work.cited_by_count);
+        if (typeof work.doi === 'string') byDoi.set(work.doi.replace('https://doi.org/', '').toLowerCase(), work.cited_by_count);
+      }
+    }
+  }
+  return { byDoi, byId };
 }
 
 export function citingWorks(openalexId: string): Promise<{ total: number; works: Work[] }> {

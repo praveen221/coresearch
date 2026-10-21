@@ -101,6 +101,6 @@ void test('a version 1 database gains target tables and keeps its profile', () =
     assert.deepEqual(listTargets(workspace), []);
     addTarget(universityTarget, workspace);
     const upgraded = new DatabaseSync(join(workspace, 'coresearch.sqlite'));
-    try { assert.equal(upgraded.prepare('PRAGMA user_version').get()?.['user_version'], 3); } finally { upgraded.close(); }
+    try { assert.equal(upgraded.prepare('PRAGMA user_version').get()?.['user_version'], 6); } finally { upgraded.close(); }
   });
 });

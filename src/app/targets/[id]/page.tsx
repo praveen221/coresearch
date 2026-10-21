@@ -5,6 +5,7 @@ import { TargetView } from '../../../components/target-view.tsx';
 import { listTargets, targetIdSchema } from '../../../lib/targets.ts';
 import { workspacePath } from '../../../lib/database.ts';
 import { getResearch } from '../../../lib/research.ts';
+import { targetOutreach } from '../../../lib/outreach.ts';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -14,5 +15,7 @@ export default async function Page({ params }: PageProps<'/targets/[id]'>): Prom
   const id = targetIdSchema.safeParse((await params).id);
   const targets = listTargets();
   if (!id.success || !targets.some((target) => target.id === id.data)) notFound();
-  return <TargetView initialTargets={targets} initialResearch={getResearch(workspacePath(), id.data)} id={id.data} />;
+  const workspace = workspacePath();
+  return <TargetView initialTargets={targets} initialResearch={getResearch(workspace, id.data)} id={id.data}
+    initialOutreach={targetOutreach(workspace, id.data)} />;
 }
