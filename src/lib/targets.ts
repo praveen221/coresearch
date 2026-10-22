@@ -2,9 +2,10 @@ import type { DatabaseSync } from 'node:sqlite';
 import { z } from 'zod';
 import { transaction, withDatabase, workspacePath } from './database.ts';
 import { ConflictError, NotFoundError, RuleError } from './errors.ts';
-import { defaultPathway, fitFacets, openings, pathways, regions, targetFieldsSchema, targetInputSchema, targetPatchSchema, targetSchema }
+import type { FitScores } from './fit-schema.ts';
+import { defaultPathway, openings, pathways, regions, targetFieldsSchema, targetInputSchema, targetPatchSchema, targetSchema }
   from './target-schema.ts';
-import type { FitScores, Link, Target } from './target-schema.ts';
+import type { Link, Target } from './target-schema.ts';
 
 export const targetIdSchema = z.coerce.number().int().positive();
 
@@ -27,7 +28,7 @@ const targetRowSchema = z.object({
   updated_at: z.string(),
 });
 const linkRowSchema = z.object({ target_id: z.number(), kind: z.string(), url: z.string() });
-const fitRowSchema = z.object({ target_id: z.number(), facet: z.enum(fitFacets), score: z.number().nullable() });
+const fitRowSchema = z.object({ target_id: z.number(), kind: z.string(), score: z.number().nullable() });
 const notesSchema = z.record(z.string(), z.string());
 
 export function readTargets(db: DatabaseSync, id?: number): Target[] {
@@ -37,8 +38,8 @@ export function readTargets(db: DatabaseSync, id?: number): Target[] {
   const rows = z.array(targetRowSchema).parse(db.prepare(`SELECT * FROM targets${where} ORDER BY id`).all(...parameters));
   const links = z.array(linkRowSchema)
     .parse(db.prepare(`SELECT target_id, kind, url FROM target_links${linkWhere} ORDER BY id`).all(...parameters));
-  const fits = z.array(fitRowSchema).parse(db.prepare(`SELECT target_id, facet, score FROM fit_facets${linkWhere}`).all(...parameters));
-  const fit = (id: number): FitScores => Object.fromEntries(fits.filter((item) => item.target_id === id).map((item) => [item.facet, item.score]));
+  const fits = z.array(fitRowSchema).parse(db.prepare(`SELECT target_id, kind, score FROM fit_scores${linkWhere}`).all(...parameters));
+  const fit = (id: number): FitScores => Object.fromEntries(fits.filter((item) => item.target_id === id).map((item) => [item.kind, item.score]));
   return rows.map((row) => targetSchema.parse({
     id: row.id,
     professor: row.professor,

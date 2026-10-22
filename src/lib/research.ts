@@ -47,11 +47,11 @@ const trackRow = z.object({
   stop_reason: z.string().nullable(), next_steps: z.string().nullable(), prompt: z.string().nullable(),
   brief: z.string().nullable(), research_questions: z.string().nullable(), contribution: z.string().nullable(),
   batch_id: z.number().nullable(), prediction: z.number().nullable(), kill_criterion: z.string().nullable(),
-  kill_reason: z.string().nullable(), seed_ids: z.string().nullable(), score: z.string().nullable(),
+  kill_reason: z.string().nullable(), seed_ids: z.string().nullable(), control: z.number().nullable(), score: z.string().nullable(),
   created_at: z.string(), updated_at: z.string(),
 });
 
-function readTracks(db: DatabaseSync, where: string, ...parameters: number[]): Track[] {
+export function readTracks(db: DatabaseSync, where: string, ...parameters: number[]): Track[] {
   return z.array(trackRow).parse(db.prepare(`SELECT * FROM tracks ${where}`).all(...parameters)).map((row) => trackSchema.parse({
     id: row.id, targetId: row.target_id, kind: row.kind, origin: row.origin, ideaId: row.idea_id, title: row.title,
     question: row.question, rationale: row.rationale, status: row.status, summary: row.summary, stopReason: row.stop_reason,
@@ -59,7 +59,7 @@ function readTracks(db: DatabaseSync, where: string, ...parameters: number[]): T
     researchQuestions: row.research_questions === null ? [] : z.array(z.string()).parse(JSON.parse(row.research_questions)),
     contribution: row.contribution, batchId: row.batch_id, prediction: row.prediction, killCriterion: row.kill_criterion,
     killReason: row.kill_reason, seedIds: row.seed_ids === null ? [] : z.array(z.number()).parse(JSON.parse(row.seed_ids)),
-    score: row.score === null ? null : trackScoreSchema.parse(JSON.parse(row.score)),
+    control: row.control === 1, score: row.score === null ? null : trackScoreSchema.parse(JSON.parse(row.score)),
     createdAt: row.created_at, updatedAt: row.updated_at,
   }));
 }
@@ -89,13 +89,21 @@ function openBatch(db: DatabaseSync, targetId: number): BatchRow {
   return created;
 }
 
+function average(values: readonly number[]): number | null {
+  return values.length === 0 ? null : Math.round(10 * values.reduce((sum, value) => sum + value, 0) / values.length) / 10;
+}
+
+function arm(tracks: readonly Track[]): Batch['metrics']['arms']['seeded'] {
+  const scored = tracks.flatMap((track) => track.score === null ? [] : [track.score]);
+  return { guesses: tracks.length, scored: scored.length, clearedBar: scored.filter((score) => clearsBar(score)).length,
+    meanScore: average(scored.map((score) => score.total)) };
+}
+
 function batchMetrics(db: DatabaseSync, batchId: number): Batch['metrics'] {
   const tracks = readTracks(db, 'WHERE batch_id = ? AND kind = \'question\'', batchId);
   const count = (status: string): number => tracks.filter((track) => track.status === status).length;
   const probes = z.array(z.object({ track_id: z.number(), text: z.string() })).parse(db.prepare(`SELECT track_id, text FROM track_events
     WHERE kind = 'probe' AND track_id IN (SELECT id FROM tracks WHERE batch_id = ?)`).all(batchId));
-  const mean = (values: readonly number[]): number | null => values.length === 0 ? null
-    : Math.round(10 * values.reduce((sum, value) => sum + value, 0) / values.length) / 10;
   const scored = tracks.flatMap((track) => track.score === null ? [] : [{ status: track.status, total: track.score.total }]);
   const predicted = tracks.filter((track) => track.prediction !== null && concluded.has(track.status) && track.killReason !== 'withdrawn');
   const killReasons: Record<string, number> = {};
@@ -105,11 +113,12 @@ function batchMetrics(db: DatabaseSync, batchId: number): Batch['metrics'] {
     paused: count('paused'), dropped: count('dropped'),
     probeKills: new Set(probes.filter((probe) => /^kill\b/i.test(probe.text.trim())).map((probe) => probe.track_id)).size,
     scored: scored.length, clearedBar: tracks.filter((track) => track.score !== null && clearsBar(track.score)).length,
-    meanScore: mean(scored.map((item) => item.total)),
-    meanStrongScore: mean(scored.filter((item) => item.status === 'strong').map((item) => item.total)), predicted: predicted.length,
+    meanScore: average(scored.map((item) => item.total)),
+    meanStrongScore: average(scored.filter((item) => item.status === 'strong').map((item) => item.total)), predicted: predicted.length,
     brier: predicted.length === 0 ? null : Math.round(1000 * predicted.reduce((sum, track) =>
       sum + ((track.prediction ?? 0) / 100 - (track.status === 'strong' ? 1 : 0)) ** 2, 0) / predicted.length) / 1000,
     seeded: tracks.filter((track) => track.seedIds.length > 0).length, killReasons,
+    arms: { seeded: arm(tracks.filter((track) => !track.control)), control: arm(tracks.filter((track) => track.control)) },
   };
 }
 
@@ -171,7 +180,7 @@ function assertGuess(db: DatabaseSync, track: Track, when: string): void {
   }
   const [batch] = track.batchId === null ? [] : batchRows(db, 'WHERE id = ?', track.batchId);
   if (batch === undefined) return;
-  if (batch.number > 1 && track.seedIds.length === 0) {
+  if (batch.number > 1 && track.seedIds.length === 0 && !track.control) {
     throw new RuleError(`${when}, name the seeds this guess grows from (seedIds); from batch 2 on, guesses come from the seed library.`);
   }
   if (batch.size !== null) {
@@ -314,7 +323,8 @@ function exportTrack(workspace: string, db: DatabaseSync, id: number): void {
     ...(detail.track.prediction === null && detail.track.killCriterion === null ? [] : ['## The guess', '',
       `Predicted chance of surviving: ${detail.track.prediction === null ? 'not recorded' : `${String(detail.track.prediction)}%`}`, '',
       `Kill criterion: ${detail.track.killCriterion ?? '_Not recorded._'}`, '',
-      `Seeds: ${detail.track.seedIds.length === 0 ? 'none' : detail.track.seedIds.map((seed) => `#${String(seed)}`).join(', ')}`, '']),
+      `Seeds: ${detail.track.control ? 'none (a control guess, written without the seed library)' : detail.track.seedIds.length === 0 ? 'none'
+        : detail.track.seedIds.map((seed) => `#${String(seed)}`).join(', ')}`, '']),
     '## Where it stands', '', ...(detail.track.stopReason === null ? [] : [`Stopped: ${detail.track.stopReason}`, '']),
     ...(detail.track.killReason === null ? [] : [`Kill reason: ${detail.track.killReason}`, '']),
     ...(detail.track.score === null ? [] : [`Score: ${String(detail.track.score.total)}/15 (novelty ${String(detail.track.score.novelty)}, `
@@ -437,12 +447,12 @@ export function addTrack(workspace: string, input: unknown): Track {
     if (track.seedIds !== undefined) assertSeeds(db, track.targetId, track.seedIds);
     const stamp = now();
     const id = Number(db.prepare(`INSERT INTO tracks (target_id, kind, origin, idea_id, title, question, rationale, research_questions,
-      contribution, batch_id, prediction, kill_criterion, seed_ids, status, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'proposed', ?, ?)`).run(track.targetId, track.kind,
+      contribution, batch_id, prediction, kill_criterion, seed_ids, control, status, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'proposed', ?, ?)`).run(track.targetId, track.kind,
       track.origin, track.ideaId, track.title, track.question, track.rationale,
       track.researchQuestions === undefined ? null : JSON.stringify(track.researchQuestions), track.contribution ?? null, batch.id,
       track.prediction ?? null, track.killCriterion ?? null, track.seedIds === undefined ? null : JSON.stringify([...new Set(track.seedIds)]),
-      stamp, stamp).lastInsertRowid);
+      track.control ? 1 : null, stamp, stamp).lastInsertRowid);
     logEvent(db, id, 'agent', 'note', track.origin === 'student'
       ? 'Opened from the student’s idea; it starts when the student approves it.'
       : 'Proposed by the agent; waiting for the student’s approval.');

@@ -109,7 +109,9 @@ export const trackInputSchema = z.strictObject({
   prediction: prediction.optional(),
   killCriterion: killCriterion.optional(),
   seedIds: seedIds.optional(),
-});
+  control: z.boolean().default(false).describe('A comparison guess written without the seed library, to test whether seeds help. '
+    + 'It names no seeds and is counted apart in the batch metrics.'),
+}).refine((value) => !(value.control && (value.seedIds?.length ?? 0) > 0), 'A control guess names no seeds.');
 export const trackApprovalSchema = z.strictObject({
   studentSaid: text.max(2000).describe('The student’s own words approving this track in chat.'),
 });
@@ -183,7 +185,7 @@ export const trackSchema = z.strictObject({
   summary: z.string().nullable(), stopReason: z.string().nullable(), nextSteps: z.string().nullable(),
   prompt: z.string().nullable(), brief: z.string().nullable(), researchQuestions: z.array(z.string()), contribution: z.string().nullable(),
   batchId: id.nullable(), prediction: z.number().int().nullable(), killCriterion: z.string().nullable(),
-  killReason: z.enum(killReasons).nullable(), seedIds: z.array(id), score: trackScoreSchema.nullable(),
+  killReason: z.enum(killReasons).nullable(), seedIds: z.array(id), control: z.boolean(), score: trackScoreSchema.nullable(),
   createdAt: timestamp, updatedAt: timestamp,
 });
 export const trackBriefSchema = z.strictObject({
@@ -265,12 +267,16 @@ export const batchCloseSchema = z.strictObject({
   lessons: text.max(20000).describe('What the batch taught: what killed guesses, which seeds and sources produced survivors, how '
     + 'well predictions matched outcomes, what to avoid, and what the next batch should try. Cite tracks by number.'),
 });
+const armSchema = z.strictObject({
+  guesses: z.number().int(), scored: z.number().int(), clearedBar: z.number().int(), meanScore: z.number().nullable(),
+});
 export const batchMetricsSchema = z.strictObject({
   guesses: z.number().int(), open: z.number().int(), strong: z.number().int(), paused: z.number().int(), dropped: z.number().int(),
   probeKills: z.number().int(), scored: z.number().int(), clearedBar: z.number().int(), meanScore: z.number().nullable(),
   meanStrongScore: z.number().nullable(),
   predicted: z.number().int(), brier: z.number().nullable(), seeded: z.number().int(),
   killReasons: z.record(z.string(), z.number().int()),
+  arms: z.strictObject({ seeded: armSchema, control: armSchema }),
 });
 export const batchSchema = z.strictObject({
   id, targetId: id, number: z.number().int().positive(), status: z.enum(['open', 'closed']), size: z.number().int().nullable(),

@@ -7,12 +7,12 @@ import { test } from 'node:test';
 import { resolveServedFile } from '../src/lib/files.ts';
 import { addCategory, categorizeSource } from '../src/lib/categories.ts';
 import {
-  addManualSource, attachPdf, attachPdfBytes, getSource, isBotCheck, markFutureScanned, pageText, requestPaper, savePaper, setSourceStatus,
+  addManualSource, attachPdf, attachPdfBytes, getSource, isBotCheck, markFutureScanned, pageText, removeSource, requestPaper, savePaper, setSourceStatus,
 } from '../src/lib/library.ts';
 import type { Work } from '../src/lib/openalex.ts';
 import {
   addClip, addEvent, addIdea, addTrack, approveTrack, assessSource, closeBatch, decideTrack, getResearch, getTrackDetail, linkSource,
-  listBatches, listIdeas, getOverview, removeClip, removeIdea, scoreTrack, setBrief, startBatch, updateSettings, updateTrack,
+  listBatches, listIdeas, getOverview, removeClip, removeIdea, removeTrack, scoreTrack, setBrief, startBatch, updateSettings, updateTrack,
 } from '../src/lib/research.ts';
 import { clearsBar } from '../src/lib/research-schema.ts';
 import { addSeed, listSeeds, seedStrength } from '../src/lib/seeds.ts';
@@ -38,7 +38,10 @@ void test('a paper is stored once, its PDF text is extracted, and reading status
     const { source, added } = savePaper(workspace, targetId, work);
     assert.equal(added, true);
     assert.equal(savePaper(workspace, targetId, { ...work, openalexId: 'W9', title: 'Humanlike Voice and Misplaced Trust!' }).added, false);
-    assert.equal(savePaper(workspace, targetId, { ...work, openalexId: 'W8', title: 'Another paper on the same landing page' }).source.url, null);
+    const stray = savePaper(workspace, targetId, { ...work, openalexId: 'W8', title: 'Another paper on the same landing page' }).source;
+    assert.equal(stray.url, null);
+    assert.deepEqual(removeSource(workspace, stray.id), { removed: stray.id });
+    assert.throws(() => getSource(workspace, stray.id), /No source/);
     assert.deepEqual(source.references, ['W2']);
     assert.throws(() => setSourceStatus(workspace, source.id, { status: 'full' }), /cannot be marked as read/);
     assert.equal(setSourceStatus(workspace, source.id, { status: 'abstract' }).status, 'abstract');
@@ -91,6 +94,7 @@ void test('clippings must quote the saved text; tracks need approval and grounde
     const clip = addClip(workspace, { sourceId: paper.id, trackId: track.id, kind: 'finding',
       quote: 'relied on wrong advice from the warm voice in 61% of trials', note: 'Direct evidence of misplaced reliance.' });
     assert.equal(clip.page, 2);
+    assert.throws(() => removeSource(workspace, paper.id), /only an unused source can be removed/);
     const assessment = { sourceId: paper.id, verdict: 'answers', assessment: `Already shows the effect [c${String(clip.id)}].` };
     assert.throws(() => assessSource(workspace, track.id, assessment), /abstract is not enough/);
     setSourceStatus(workspace, paper.id, { status: 'full' });
@@ -300,6 +304,13 @@ void test('batches carry what was learned: later guesses need seeds, and a batch
     const extra = addTrack(workspace, { ...guess, title: 'Over budget', seedIds: [seed.id] });
     linkSource(workspace, extra.id, { sourceId: lab.id, role: 'seed' });
     assert.throws(() => approveTrack(workspace, extra.id, { studentSaid: 'Go.' }), /approved for 1 guess,/);
+    assert.throws(() => addTrack(workspace, { ...guess, title: 'Seeded control', control: true, seedIds: [seed.id] }), /names no seeds/);
+    removeTrack(workspace, extra.id);
+    const control = addTrack(workspace, { ...guess, title: 'Control guess', control: true });
+    linkSource(workspace, control.id, { sourceId: lab.id, role: 'seed' });
+    assert.throws(() => approveTrack(workspace, control.id, { studentSaid: 'Go.' }), /approved for 1 guess,/);
+    assert.deepEqual(listBatches(workspace, targetId).at(-1)?.metrics.arms, {
+      seeded: { guesses: 1, scored: 0, clearedBar: 0, meanScore: null }, control: { guesses: 1, scored: 0, clearedBar: 0, meanScore: null } });
   });
 });
 

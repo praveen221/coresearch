@@ -8,6 +8,8 @@ import { resolveServedFile } from '../src/lib/files.ts';
 import { guessRegion, importList, parseCsv, previewList, sheetExportUrl } from '../src/lib/import.ts';
 import { attachPdf, savePaper } from '../src/lib/library.ts';
 import type { Work } from '../src/lib/openalex.ts';
+import { configureFitKinds, listFitKinds, setFitWeight } from '../src/lib/fit.ts';
+import { defaultFitKinds, fitTotal } from '../src/lib/fit-schema.ts';
 import {
   citeCollaborator, editPitch, getFit, getPitch, listOutreach, savePitch, scoreFit, setPitchStatus, sharedContacts, targetOutreach,
 } from '../src/lib/outreach.ts';
@@ -139,11 +141,25 @@ void test('a pitch connects quoted CV evidence with the professor’s own cutout
     assert.throws(() => scoreFit(workspace, { ...fit, facets: { topic: { ...fit.facets.topic, evidence: [{ cvQuote: 'annotated manipulation tactics in LLM responses',
       clipId: foreign.id, note: 'x' }] } } }), /not from Jane Doe’s own papers or this target’s saved pages/);
     assert.deepEqual(Object.keys(scoreFit(workspace, fit)), ['topic', 'funding']);
-    assert.equal(getFit(workspace, professor.id).topic?.evidence[0]?.cv?.page, 1);
+    assert.equal(getFit(workspace, professor.id)['topic']?.evidence[0]?.cv?.page, 1);
     assert.deepEqual(getTarget(professor.id, workspace).fit, { topic: 3, funding: 1 });
+    assert.deepEqual(listFitKinds(workspace).map((kind) => kind.key), defaultFitKinds.map((kind) => kind.key));
+    assert.deepEqual(fitTotal({ topic: 3, funding: 1 }, listFitKinds(workspace)), { score: 4, max: 21, checked: 2, counted: 7 });
+    assert.deepEqual(fitTotal({ topic: 3, funding: 1 }, setFitWeight(workspace, { key: 'topic', weight: 2 })), { score: 7, max: 24, checked: 2, counted: 7 });
+    assert.throws(() => setFitWeight(workspace, { key: 'nothing', weight: 1 }), /No kind of fit called/);
+    assert.throws(() => scoreFit(workspace, { ...fit, facets: { compute: { score: 1, finding: 'A cluster.', reason: 'Fine.' } } }),
+      /“compute” is not a configured kind of fit/);
+    const compute = { key: 'compute', label: 'Compute', question: 'Can the lab run large models?', anchors: '0 none; 3 a cluster.',
+      evidence: 'work', weight: 1 } as const;
+    assert.throws(() => configureFitKinds(workspace, { kinds: [compute, compute] }), /Use each key once/);
+    configureFitKinds(workspace, { kinds: [compute] });
+    assert.deepEqual(Object.keys(scoreFit(workspace, { ...fit, facets: { compute: { score: 1, finding: 'A cluster.', reason: 'Fine.' } } })),
+      ['compute', 'funding', 'topic']);
+    assert.deepEqual(fitTotal(getTarget(professor.id, workspace).fit, listFitKinds(workspace)), { score: 1, max: 3, checked: 1, counted: 1 });
+    configureFitKinds(workspace, { kinds: defaultFitKinds });
     assert.deepEqual(targetOutreach(workspace, professor.id).clips.map((item) => item.id), [clip.id]);
     const rows = listOutreach(workspace);
     assert.deepEqual(rows.map((row) => [row.professor, row.pathway, row.pitch, row.hold, row.openings, row.deadline, row.contacts.length, row.fit]),
-      [['Jane Doe', 'pitch', 'sent', null, 'yes', '2026-12-01', 1, { topic: 3, funding: 1 }], ['John Roe', 'proposal', null, null, 'unknown', null, 0, {}]]);
+      [['Jane Doe', 'pitch', 'sent', null, 'yes', '2026-12-01', 1, { compute: 1, topic: 3, funding: 1 }], ['John Roe', 'proposal', null, null, 'unknown', null, 0, {}]]);
   });
 });

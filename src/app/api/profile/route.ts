@@ -1,11 +1,12 @@
+import { liveJson } from '../../../lib/live.ts';
 import { getProfile } from '../../../lib/profile.ts';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-export function GET(): Response {
+export function GET(request: Request): Response {
   try {
-    return Response.json(getProfile(), { headers: { 'Cache-Control': 'no-store' } });
+    return liveJson(request, getProfile());
   } catch {
     return Response.json({ error: 'Unable to read the saved profile.' }, { status: 500 });
   }

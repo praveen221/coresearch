@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { text } from './profile-schema.ts';
+import { fitKindSchema, fitScoresSchema } from './fit-schema.ts';
 import { clipSchema, sourceSchema } from './research-schema.ts';
-import { fitFacets, fitScoresSchema, linkKinds, openings, pathways, regions } from './target-schema.ts';
-import type { FitFacet } from './target-schema.ts';
+import { linkKinds, openings, pathways, regions } from './target-schema.ts';
 
 const id = z.number().int().positive();
 const timestamp = z.iso.datetime();
@@ -62,19 +62,6 @@ export const collaboratorCiteSchema = z.strictObject({
   note: text.max(300).describe('The relationship in a few words, e.g. “Co-author of her CHI 2026 paper”.'),
 });
 
-export const fitAnchors: Record<FitFacet, string> = {
-  topic: '0 no shared topic; 1 adjacent topics; 2 her work covers a topic of their recent papers; 3 her own work addresses their current core question.',
-  method: '0 none of their methods; 1 related methods; 2 she has used a method their recent papers use; 3 she has used their main methods in substantial work.',
-  scale: '0 they work at a scale she has never worked at; 1 a different scale with some overlap; 2 a scale she has worked at; 3 the scale of her strongest work.',
-  venue: '0 no shared venues or fields; 1 the same field, other venues; 2 she has published or submitted where they publish; 3 she has published at their main venue.',
-  skill: '0 she lacks skills their work needs; 1 some of them; 2 the skills their papers or advert ask for; 3 rare skills their work depends on.',
-  funding: '0 not taking students or no funding; 1 no recent grant or funded post found; 2 a grant or studentship covering her start year; 3 a grant '
-    + 'from the last two years on her topic, or a funded post advertised.',
-  alumni: '0 no alumni found outside academia; 1 one or two outside academia; 2 several in industry, government, or non-profit roles; 3 most go on '
-    + 'outside academia.',
-};
-export const cvFacets: readonly FitFacet[] = ['topic', 'method', 'scale', 'venue', 'skill'];
-
 const evidenceInput = z.strictObject({
   cvQuote: z.string().trim().min(15, 'Quote at least a full phrase of the CV.').max(600).nullable()
     .describe('Exact words from the student’s CV; null for a fact about the lab alone.'),
@@ -88,15 +75,10 @@ const facetInput = z.strictObject({
   evidence: z.array(evidenceInput).max(4).default([]).describe('A score of 2 or 3 needs a cutout from their work, and for topic, method, '
     + 'scale, venue, and skill also an exact CV quote.'),
 });
-const facet = (kind: FitFacet): z.ZodOptional<typeof facetInput> => facetInput.describe(fitAnchors[kind]).optional();
-
 export const fitInputSchema = z.strictObject({
   targetId: id,
-  facets: z.strictObject({
-    topic: facet('topic'), method: facet('method'), scale: facet('scale'), venue: facet('venue'), skill: facet('skill'),
-    funding: facet('funding'), alumni: facet('alumni'),
-  }).refine((value) => Object.keys(value).length > 0, 'Score at least one kind of fit.')
-    .describe('Kinds left out keep their earlier scores.'),
+  facets: z.record(z.string(), facetInput).refine((value) => Object.keys(value).length > 0, 'Score at least one kind of fit.')
+    .describe('Keyed by the configured kinds of fit (fit:kinds). Kinds left out keep their earlier scores.'),
   reviewer: text.max(200).describe('Who scored it, e.g. “Fit reviewer A (agent)”.'),
 });
 
@@ -106,7 +88,7 @@ export const facetSchema = z.strictObject({
   reviewer: z.string(), scoredAt: timestamp,
 });
 export type Facet = z.infer<typeof facetSchema>;
-export const fitSchema = z.partialRecord(z.enum(fitFacets), facetSchema);
+export const fitSchema = z.record(z.string(), facetSchema);
 export type Fit = z.infer<typeof fitSchema>;
 
 export const outreachRowSchema = z.strictObject({
@@ -136,8 +118,9 @@ export interface ListPreview {
   skipped: { row: number; reason: string }[];
 }
 
-export const outreachListSchema = z.strictObject({ rows: z.array(outreachRowSchema) });
+export const outreachListSchema = z.strictObject({ rows: z.array(outreachRowSchema), kinds: z.array(fitKindSchema) });
 export const targetOutreachSchema = z.strictObject({
-  pitch: pitchSchema.nullable(), contacts: z.array(contactSchema), fit: fitSchema, clips: z.array(clipSchema), sources: z.array(sourceSchema),
+  pitch: pitchSchema.nullable(), contacts: z.array(contactSchema), fit: fitSchema, kinds: z.array(fitKindSchema), clips: z.array(clipSchema),
+  sources: z.array(sourceSchema),
 });
 export type TargetOutreach = z.infer<typeof targetOutreachSchema>;

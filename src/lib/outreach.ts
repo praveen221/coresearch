@@ -4,13 +4,13 @@ import { cvPages, locateInCv } from './cv.ts';
 import { transaction, withDatabase } from './database.ts';
 import { NotFoundError, RuleError } from './errors.ts';
 import { readSources } from './library.ts';
+import { listFitKinds, readKinds } from './fit.ts';
 import {
-  collaboratorCiteSchema, cvFacets, facetSchema, fitInputSchema, fitSchema, pitchEditSchema, pitchInputSchema, pitchSchema, pitchStatusSchema,
+  collaboratorCiteSchema, facetSchema, fitInputSchema, fitSchema, pitchEditSchema, pitchInputSchema, pitchSchema, pitchStatusSchema,
   pitchWordLimit,
 } from './outreach-schema.ts';
 import type { Contact, CvCutout, Fit, MatchKind, OutreachRow, Pitch, TargetOutreach } from './outreach-schema.ts';
 import { readClipsById } from './research.ts';
-import { fitFacets, fitLabels } from './target-schema.ts';
 import type { Target } from './target-schema.ts';
 import { readTargets } from './targets.ts';
 
@@ -27,7 +27,7 @@ const collaboratorRow = z.object({
   cv_after: z.string().nullable(), note: z.string().nullable(),
 });
 const fitRow = z.object({
-  facet: z.enum(fitFacets), score: z.number().nullable(), finding: z.string(), reason: z.string(), evidence: z.string(), reviewer: z.string(),
+  kind: z.string(), score: z.number().nullable(), finding: z.string(), reason: z.string(), evidence: z.string(), reviewer: z.string(),
   scored_at: z.string(),
 });
 
@@ -112,11 +112,11 @@ export function citeCollaborator(workspace: string, input: unknown): { name: str
 }
 
 function readFit(db: DatabaseSync, targetId: number): Fit {
-  const rows = z.array(fitRow).parse(db.prepare('SELECT * FROM fit_facets WHERE target_id = ?').all(targetId))
-    .sort((a, b) => fitFacets.indexOf(a.facet) - fitFacets.indexOf(b.facet));
+  const rows = z.array(fitRow).parse(db.prepare(`SELECT fit_scores.* FROM fit_scores LEFT JOIN fit_kinds ON fit_kinds.key = fit_scores.kind
+    WHERE target_id = ? ORDER BY fit_kinds.position IS NULL, fit_kinds.position, fit_scores.kind`).all(targetId));
   return fitSchema.parse(Object.fromEntries(rows.map((row) => {
     const evidence: unknown = JSON.parse(row.evidence);
-    return [row.facet, facetSchema.parse({ score: row.score, finding: row.finding, reason: row.reason, evidence, reviewer: row.reviewer,
+    return [row.kind, facetSchema.parse({ score: row.score, finding: row.finding, reason: row.reason, evidence, reviewer: row.reviewer,
       scoredAt: row.scored_at })];
   })));
 }
@@ -127,17 +127,21 @@ export function getFit(workspace: string, targetId: number): Fit {
 
 export function scoreFit(workspace: string, input: unknown): Fit {
   const fit = fitInputSchema.parse(input);
-  const entries = fitFacets.flatMap((facet) => {
-    const value = fit.facets[facet];
-    return value === undefined ? [] : [{ facet, value }];
+  const kinds = listFitKinds(workspace);
+  const entries = Object.entries(fit.facets).map(([facet, value]) => {
+    const kind = kinds.find((item) => item.key === facet);
+    if (kind === undefined) {
+      throw new RuleError(`“${facet}” is not a configured kind of fit. Use one of: ${kinds.map((item) => item.key).join(', ')}, or add it with fit:configure.`);
+    }
+    return { facet, kind, value };
   });
-  for (const { facet, value } of entries) {
+  for (const { kind, value } of entries) {
     if (value.score === null || value.score < 2) continue;
     if (!value.evidence.some((item) => item.clipId !== null)) {
-      throw new RuleError(`${fitLabels[facet]}: back a score of ${String(value.score)} with a cutout from their work.`);
+      throw new RuleError(`${kind.label}: back a score of ${String(value.score)} with a cutout from their work.`);
     }
-    if (cvFacets.includes(facet) && !value.evidence.some((item) => item.cvQuote !== null)) {
-      throw new RuleError(`${fitLabels[facet]}: back a score of ${String(value.score)} with an exact quote from the CV.`);
+    if (kind.evidence === 'cv-and-work' && !value.evidence.some((item) => item.cvQuote !== null)) {
+      throw new RuleError(`${kind.label}: back a score of ${String(value.score)} with an exact quote from the CV.`);
     }
   }
   const quoted = entries.some(({ value }) => value.evidence.some((item) => item.cvQuote !== null));
@@ -165,8 +169,8 @@ export function scoreFit(workspace: string, input: unknown): Fit {
     }
     const stamp = new Date().toISOString();
     for (const { facet, value, evidence } of located) {
-      db.prepare(`INSERT INTO fit_facets (target_id, facet, score, finding, reason, evidence, reviewer, scored_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT (target_id, facet) DO UPDATE SET score = excluded.score, finding = excluded.finding, reason = excluded.reason,
+      db.prepare(`INSERT INTO fit_scores (target_id, kind, score, finding, reason, evidence, reviewer, scored_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT (target_id, kind) DO UPDATE SET score = excluded.score, finding = excluded.finding, reason = excluded.reason,
         evidence = excluded.evidence, reviewer = excluded.reviewer, scored_at = excluded.scored_at`)
         .run(fit.targetId, facet, value.score, value.finding, value.reason, JSON.stringify(evidence), fit.reviewer, stamp);
     }
@@ -181,7 +185,7 @@ export function targetOutreach(workspace: string, targetId: number): TargetOutre
     const fit = readFit(db, targetId);
     const found = contacts(db, professor);
     const clipIds = [...new Set([
-      ...fitFacets.flatMap((facet) => fit[facet]?.evidence.flatMap((item) => item.clipId === null ? [] : [item.clipId]) ?? []),
+      ...Object.values(fit).flatMap((facet) => facet.evidence.flatMap((item) => item.clipId === null ? [] : [item.clipId])),
       ...(pitch?.connections.map((connection) => connection.clipId) ?? []),
       ...[professor.openings.clipId, professor.deadline?.clipId ?? null].flatMap((id) => id === null ? [] : [id]),
       ...z.array(z.object({ id: z.number() })).parse(db.prepare(`SELECT clips.id FROM clips JOIN sources ON sources.id = clips.source_id
@@ -190,7 +194,7 @@ export function targetOutreach(workspace: string, targetId: number): TargetOutre
     const clips = readClipsById(db, clipIds);
     const sourceIds = [...new Set([...clips.map((clip) => clip.sourceId), ...found.flatMap((contact) => contact.papers.map((paper) => paper.sourceId))])];
     const sources = sourceIds.length === 0 ? [] : readSources(db, `WHERE id IN (${sourceIds.map(() => '?').join(', ')}) ORDER BY id`, ...sourceIds);
-    return { pitch, contacts: found, fit, clips, sources };
+    return { pitch, contacts: found, fit, kinds: readKinds(db), clips, sources };
   }));
 }
 

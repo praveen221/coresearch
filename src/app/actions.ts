@@ -7,6 +7,10 @@ import type { Profile } from '../lib/profile-schema.ts';
 import { pathways, regions, targetInputSchema } from '../lib/target-schema.ts';
 import type { Target } from '../lib/target-schema.ts';
 import { attachCvBytes } from '../lib/cv.ts';
+import { createExport } from '../lib/export.ts';
+import type { ExportRecord } from '../lib/export.ts';
+import { setFitWeight } from '../lib/fit.ts';
+import type { FitKind } from '../lib/fit-schema.ts';
 import { importList, previewList, readList } from '../lib/import.ts';
 import { editPitch, setPitchStatus } from '../lib/outreach.ts';
 import type { ListPreview, Pitch } from '../lib/outreach-schema.ts';
@@ -126,6 +130,18 @@ export async function setTargetPath(id: unknown, patch: unknown): Promise<Action
     const fields = await z.strictObject({ region: z.enum(regions).nullable().optional(), pathway: z.enum(pathways).nullable().optional() })
       .parseAsync(patch);
     return { ok: true, value: updateTarget(targetIdSchema.parse(id), fields) };
+  } catch (error) { return failure(error); }
+}
+
+export async function makeExport(options: unknown): Promise<ActionResult<ExportRecord>> {
+  try {
+    return { ok: true, value: createExport(workspacePath(), await z.unknown().parseAsync(options)) };
+  } catch (error) { return failure(error); }
+}
+
+export async function saveFitWeight(key: unknown, weight: unknown): Promise<ActionResult<FitKind[]>> {
+  try {
+    return { ok: true, value: setFitWeight(workspacePath(), await z.strictObject({ key: z.string(), weight: z.number() }).parseAsync({ key, weight })) };
   } catch (error) { return failure(error); }
 }
 

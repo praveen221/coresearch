@@ -11,14 +11,21 @@ export function useLive<T>(url: string, schema: z.ZodType<T>, initial: T): {
   useEffect(() => {
     const controller = new AbortController();
     let pending = false;
+    let tag: string | null = null;
     async function refresh(): Promise<void> {
       if (pending || document.visibilityState === 'hidden') return;
       pending = true;
       try {
         const response = await fetch(url, {
-          cache: 'no-store', signal: AbortSignal.any([controller.signal, AbortSignal.timeout(5000)]),
+          cache: 'no-store', headers: tag === null ? {} : { 'If-None-Match': tag },
+          signal: AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]),
         });
+        if (response.status === 304) {
+          if (!controller.signal.aborted) setFailed(false);
+          return;
+        }
         if (!response.ok) throw new Error(`Refresh of ${url} failed.`);
+        tag = response.headers.get('etag');
         const input: unknown = await response.json();
         const saved = schema.parse(input);
         if (!controller.signal.aborted) {

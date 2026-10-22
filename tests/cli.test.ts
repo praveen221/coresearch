@@ -59,6 +59,16 @@ void test('CLI adds, reads, updates, and removes targets, and prints both target
     const schemas = z.object({ add: z.object({ properties: z.record(z.string(), z.unknown()) }), update: z.object({}) })
       .parse(JSON.parse(run(['target:schema']).stdout));
     assert.deepEqual(Object.keys(schemas.add.properties), ['professor', 'labKind', 'university', 'lab', 'links', 'country', 'region', 'pathway', 'notes']);
+    const brief = run(['role', 'fit-scorer', '--target', id]);
+    assert.equal(brief.status, 0, brief.stderr);
+    assert.match(brief.stdout, /^You are the fit scorer for Coresearch/);
+    assert.match(brief.stdout, /Professor: Example Professor, Example Institute\. Target \d+, pitch path\./);
+    assert.match(brief.stdout, /- topic \(Topic\): Does your work address/);
+    assert.match(brief.stdout, /Never put the student’s name, email, or other personal data/);
+    assert.match(run(['role', 'critic', '--target', id]).stderr, /No drafts in .*run the drafter role first/);
+    assert.match(run(['role', 'investigator', '--target', id]).stderr, /needs --track/);
+    assert.match(run(['role', 'nobody', '--target', id]).stderr, /error/);
+    assert.match(run(['role']).stderr, /Name one role/);
     assert.equal(run(['target:remove', '--id', id]).status, 0);
     assert.equal(run(['target:remove', '--id', id]).status, 1);
   } finally { rmSync(workspace, { recursive: true, force: true }); }

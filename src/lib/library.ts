@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
 import { parse } from 'node-html-parser';
@@ -259,6 +259,20 @@ export function sourcePages(workspace: string, source: Source): string[] {
   if (source.textPath === null) throw new RuleError('This source has no extracted text yet; download or attach it first.');
   const pages = stringsSchema.parse(JSON.parse(readFileSync(join(workspace, source.textPath), 'utf8')));
   return source.kind === 'paper' ? stripRunningLines(pages) : pages;
+}
+
+export function removeSource(workspace: string, id: number): { removed: number } {
+  return withDatabase(workspace, (db) => transaction(db, () => {
+    const source = readSource(db, id);
+    const uses = z.object({ clips: z.number(), links: z.number() }).parse(db.prepare(`SELECT
+      (SELECT count(*) FROM clips WHERE source_id = ?) AS clips, (SELECT count(*) FROM track_sources WHERE source_id = ?) AS links`).get(id, id));
+    if (uses.clips + uses.links > 0) {
+      throw new RuleError(`Source ${String(id)} has ${String(uses.clips)} cutouts and ${String(uses.links)} track links; only an unused source can be removed.`);
+    }
+    db.prepare('DELETE FROM sources WHERE id = ?').run(id);
+    for (const path of [source.filePath, source.textPath]) if (path !== null) rmSync(join(workspace, path), { force: true });
+    return { removed: id };
+  }, 'BEGIN IMMEDIATE'));
 }
 
 export function setSourceStatus(workspace: string, id: number, input: unknown): Source {

@@ -2,9 +2,10 @@ import { mkdirSync, chmodSync } from 'node:fs';
 import { isAbsolute, join, resolve } from 'node:path';
 import type { DatabaseSync as Database } from 'node:sqlite';
 import { DatabaseSync } from 'node:sqlite';
+import { defaultFitKinds } from './fit-schema.ts';
 
 const applicationId = 0x43525348;
-const schemaVersion = 6;
+const schemaVersion = 7;
 
 export function workspacePath(explicit?: string): string {
   const selected = explicit ?? process.env['CORESEARCH_WORKSPACE'];
@@ -213,16 +214,25 @@ export function withDatabase<T>(workspace: string, operation: (db: DatabaseSync)
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL
       ) STRICT;
-      CREATE TABLE IF NOT EXISTS fit_facets (
+      CREATE TABLE IF NOT EXISTS fit_kinds (
+        key TEXT PRIMARY KEY,
+        label TEXT NOT NULL,
+        question TEXT NOT NULL,
+        anchors TEXT NOT NULL,
+        evidence TEXT NOT NULL CHECK (evidence IN ('cv-and-work', 'work')),
+        weight INTEGER NOT NULL CHECK (weight BETWEEN 0 AND 3),
+        position INTEGER NOT NULL
+      ) STRICT;
+      CREATE TABLE IF NOT EXISTS fit_scores (
         target_id INTEGER NOT NULL REFERENCES targets (id) ON DELETE CASCADE,
-        facet TEXT NOT NULL CHECK (facet IN ('topic', 'method', 'scale', 'venue', 'skill', 'funding', 'alumni')),
+        kind TEXT NOT NULL,
         score INTEGER CHECK (score BETWEEN 0 AND 3),
         finding TEXT NOT NULL,
         reason TEXT NOT NULL,
         evidence TEXT NOT NULL,
         reviewer TEXT NOT NULL,
         scored_at TEXT NOT NULL,
-        PRIMARY KEY (target_id, facet)
+        PRIMARY KEY (target_id, kind)
       ) STRICT;
       PRAGMA application_id = ${String(applicationId)};
       PRAGMA user_version = ${String(schemaVersion)};
@@ -234,12 +244,22 @@ export function withDatabase<T>(workspace: string, operation: (db: DatabaseSync)
     addColumns(db, 'targets', ['openings_clip_id', 'deadline_clip_id'], 'INTEGER');
     addColumns(db, 'tracks', ['rationale', 'stop_reason', 'next_steps', 'brief', 'research_questions', 'contribution', 'kill_criterion',
       'kill_reason', 'seed_ids', 'score']);
-    addColumns(db, 'tracks', ['batch_id', 'prediction'], 'INTEGER');
+    addColumns(db, 'tracks', ['batch_id', 'prediction', 'control'], 'INTEGER');
     addColumns(db, 'sources', ['request_reason', 'requested_at', 'cited_at', 'future_checked_at', 'future_note']);
     addColumns(db, 'sources', ['cited_by'], 'INTEGER');
     addColumns(db, 'track_sources', ['verdict', 'assessment', 'assessed_at']);
     addColumns(db, 'collaborators', ['cv_quote', 'cv_before', 'cv_after', 'note']);
     addColumns(db, 'collaborators', ['cv_page'], 'INTEGER');
+    if (db.prepare('SELECT 1 FROM sqlite_master WHERE type = \'table\' AND name = \'fit_facets\'').get() !== undefined) {
+      db.exec(`INSERT OR IGNORE INTO fit_scores SELECT target_id, facet, score, finding, reason, evidence, reviewer, scored_at FROM fit_facets;
+        DROP TABLE fit_facets;`);
+    }
+    if (db.prepare('SELECT 1 FROM fit_kinds LIMIT 1').get() === undefined) {
+      defaultFitKinds.forEach((kind, position) => {
+        db.prepare('INSERT INTO fit_kinds (key, label, question, anchors, evidence, weight, position) VALUES (?, ?, ?, ?, ?, ?, ?)')
+          .run(kind.key, kind.label, kind.question, kind.anchors, kind.evidence, kind.weight, position);
+      });
+    }
     db.exec(`
       INSERT INTO batches (target_id, number, status, created_at)
         SELECT target_id, 1, 'open', min(created_at) FROM tracks

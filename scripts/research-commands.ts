@@ -3,7 +3,7 @@ import { addPaper, discoverPapers, fetchMissing } from '../src/lib/discovery.ts'
 import { addCategory, categorizeSource, listCategories } from '../src/lib/categories.ts';
 import {
   addManualSource, attachPdf, downloadPaper, getSource, listSources, markFutureScanned, refreshCitations, requestPaper, savePage,
-  setSourceStatus, sourcePages,
+  removeSource, setSourceStatus, sourcePages,
 } from '../src/lib/library.ts';
 import { citingWorks, fetchAuthor, searchAuthors, searchWorks } from '../src/lib/openalex.ts';
 import type { Work } from '../src/lib/openalex.ts';
@@ -25,7 +25,7 @@ export const researchCommands = [
   'idea:list', 'idea:add', 'idea:remove',
   'papers:authors', 'papers:discover', 'papers:fetch', 'papers:citations', 'paper:search', 'paper:add', 'paper:document', 'paper:citing',
   'paper:attach', 'paper:request',
-  'source:page', 'source:list', 'source:get', 'source:text', 'source:status', 'source:future', 'source:categorize',
+  'source:page', 'source:list', 'source:get', 'source:text', 'source:status', 'source:future', 'source:categorize', 'source:remove',
   'category:list', 'category:add',
   'clip:add', 'clip:list', 'clip:remove',
   'seed:list', 'seed:add', 'seed:update',
@@ -113,6 +113,7 @@ export async function runResearch(command: ResearchCommand, workspace: string, v
       return { id: source.id, title: source.title, page, text: pages[page - 1] };
     }
     case 'source:status': return setSourceStatus(workspace, number(values, 'id'), await input());
+    case 'source:remove': return removeSource(workspace, number(values, 'id'));
     case 'source:future': return markFutureScanned(workspace, number(values, 'id'), await input());
     case 'source:categorize': return categorizeSource(workspace, number(values, 'id'), await input());
     case 'category:list': return listCategories(workspace, number(values, 'target'));

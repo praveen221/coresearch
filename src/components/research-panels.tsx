@@ -64,7 +64,7 @@ export function Shortlist({ research }: Readonly<{ research: Research }>): React
       || (b.score?.total ?? -1) - (a.score?.total ?? -1) || a.id - b.id);
   if (strong.length === 0) return null;
   return <section aria-labelledby="shortlist-heading" className={styles['shortlist']}>
-    <Heading as="h2" size="4" id="shortlist-heading">Shortlist · {String(strong.length)} open directions</Heading>
+    <Heading as="h2" size="4" id="shortlist-heading">Your best directions · {String(strong.length)}</Heading>
     <Text as="p" size="2" color="gray" mt="2">
       Each stayed open after the closest work was read, ordered by an independent reviewer’s score. Open one to check its evidence and brief,
       then tell your agent which to develop.
@@ -110,7 +110,7 @@ function LimitControl({ research }: Readonly<{ research: Research }>): ReactElem
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   return <div className={styles['limit']}>
-    <label htmlFor="track-limit"><Text size="1" color="gray">Agent tracks at a time</Text></label>
+    <label htmlFor="track-limit"><Text size="1" color="gray">Directions your agent tests at once</Text></label>
     <Flex gap="2" align="center">
       <Select.Root value={String(research.settings.trackLimit)} disabled={pending} onValueChange={(value) => {
         startTransition(async () => {
@@ -144,9 +144,9 @@ export function TrackList({ research }: Readonly<{ research: Research }>): React
     </li>;
   }
   return <aside aria-labelledby="tracks-heading" className={styles['tracks']}>
-    <Heading as="h2" size="3" id="tracks-heading">Tracks</Heading>
+    <Heading as="h2" size="3" id="tracks-heading">Research directions</Heading>
     <LimitControl research={research} />
-    {research.tracks.length === 0 ? <Text as="p" size="2" color="gray" mt="3">No tracks yet. Ask your agent to start the research.</Text> : null}
+    {research.tracks.length === 0 ? <Text as="p" size="2" color="gray" mt="3">None yet. Ask your agent to start testing research directions.</Text> : null}
     {trackGroups.map((group) => {
       const tracks = research.tracks.filter((track) => group.statuses.includes(track.status));
       return tracks.length === 0 ? null : <div key={group.title}>
@@ -246,9 +246,9 @@ export function ResearchStatus({ research }: Readonly<{ research: Research }>): 
   const requests = papers.filter((paper) => paper.requestReason !== null && paper.filePath === null).length;
   const tracks = [...research.tracks].sort((a, b) => trackRank(a.status) - trackRank(b.status) || b.id - a.id);
   return <section aria-labelledby="status-heading" className={styles['statusCard']}>
-    <Heading as="h2" size="4" id="status-heading">Research status</Heading>
+    <Heading as="h2" size="4" id="status-heading">Every direction tested</Heading>
     <Text as="p" size="2" mt="2">
-      {String(research.tracks.length)} tracks · {String(count('strong'))} strong · {String(count('running'))} running ·
+      {String(research.tracks.length)} directions · {String(count('strong'))} strong · {String(count('running'))} being tested ·
       {' '}{String(count('awaiting') + count('proposed'))} need you · {String(count('dropped'))} dropped · {String(count('paused'))} paused
     </Text>
     <Text as="p" size="2" color="gray">
@@ -256,7 +256,7 @@ export function ResearchStatus({ research }: Readonly<{ research: Research }>): 
       {requests > 0 ? ` · ${String(requests)} papers needed from you` : ''}
     </Text>
     {tracks.length === 0 ? null : <table className={styles['table']}>
-      <thead><tr><th scope="col">Track</th><th scope="col">Status</th><th scope="col">Outcome</th></tr></thead>
+      <thead><tr><th scope="col">Direction</th><th scope="col">Status</th><th scope="col">Outcome</th></tr></thead>
       <tbody>{tracks.map((track) => <tr key={track.id}>
         <td><a href={trackHref(track)}>{track.title}</a><Text as="div" size="1" color="gray">[{track.origin}]{track.kind === 'frontier' ? ' frontier' : ''}</Text></td>
         <td>{trackStatusLabels[track.status]}{track.brief === null ? '' : ' · brief'}{track.score === null ? '' : ` · ${String(track.score.total)}/15`}</td>

@@ -24,15 +24,15 @@ export function paperFileName(paper: { id: number; year: number | null; authors:
   return `${String(paper.year ?? 'undated')}-${author}-${slug(paper.title, 6)}-${String(paper.id)}`;
 }
 
-export function resolveServedFile(workspace: string, requested: string): string | null {
+export function resolveServedFile(workspace: string, requested: string): { path: string; folder: 'targets' | 'profile' | 'exports' } | null {
   if (requested === '' || isAbsolute(requested) || requested.includes('\0')) return null;
   const candidate = resolve(workspace, requested);
-  for (const folder of ['targets', 'profile']) {
+  for (const folder of ['targets', 'profile', 'exports'] as const) {
     const root = resolve(workspace, folder);
     if (!candidate.startsWith(`${root}${sep}`) || !existsSync(candidate)) continue;
     const real = realpathSync(candidate);
     const inside = relative(realpathSync(root), real);
-    return inside.startsWith('..') || isAbsolute(inside) ? null : real;
+    return inside.startsWith('..') || isAbsolute(inside) ? null : { path: real, folder };
   }
   return null;
 }

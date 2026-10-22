@@ -7,6 +7,7 @@ import { approveBatch } from '../app/actions.ts';
 import { barMinimum, clearsBar } from '../lib/research-schema.ts';
 import type { Batch, Category, Clip, Research, Seed, SeedKind, Source } from '../lib/research-schema.ts';
 import { Cutout, cite, sourceHref, statusLabels, statusMarkers, trackHref } from './research-panels.tsx';
+import { plural } from '../lib/words.ts';
 import styles from './ui.module.css';
 
 export const seedKindLabels: Record<SeedKind, string> = {
@@ -19,10 +20,6 @@ const killLabels: Record<string, string> = {
   'weak-lab-fit': 'weak fit with the lab', 'weak-student-fit': 'weak fit with you', infeasible: 'infeasible', competition: 'competition',
   'student-choice': 'your choice', withdrawn: 'withdrawn before testing',
 };
-
-function plural(count: number, word: string): string {
-  return `${String(count)} ${word}${count === 1 ? '' : word.endsWith('s') ? 'es' : 's'}`;
-}
 
 function BatchCard({ batch, research }: Readonly<{ batch: Batch; research: Research }>): ReactElement {
   const { metrics } = batch;
@@ -47,6 +44,9 @@ function BatchCard({ batch, research }: Readonly<{ batch: Batch; research: Resea
       {' '}{metrics.brier === null ? 'No predictions recorded.' : `Prediction error ${String(metrics.brier)} (Brier; 0 is perfect, 0.25 is a coin toss) over ${plural(metrics.predicted, 'guess')}.`}
       {' '}{plural(metrics.seeded, 'guess')} grew from seeds.
     </Text>
+    {metrics.arms.control.guesses === 0 ? null : <Text as="p" size="2" color="gray">Seeds test: with seeds, {String(metrics.arms.seeded.clearedBar)} of
+      {' '}{plural(metrics.arms.seeded.scored, 'scored guess')} clear the bar (mean {String(metrics.arms.seeded.meanScore ?? 0)}/15); without seeds,
+      {' '}{String(metrics.arms.control.clearedBar)} of {plural(metrics.arms.control.scored, 'scored guess')} (mean {String(metrics.arms.control.meanScore ?? 0)}/15).</Text>}
     {reasons.length === 0 ? null : <Text as="p" size="2" color="gray">Why guesses died: {reasons.map(([reason, count]) =>
       `${killLabels[reason] ?? reason} ${String(count)}`).join(' · ')}</Text>}
     {batch.lessons === null ? null : <>
@@ -99,6 +99,9 @@ function NextBatch({ research, targetId, number }: Readonly<{ research: Research
         });
       }}>Approve batch {number}</Button>
     </Flex>
+    <Text as="p" size="1" color="gray" mt="2">Expect roughly {String(Math.round(Number(size) * 0.6 * 10) / 10)} million tokens and {String(Math.ceil(Number(size)
+      * 40 / 60 / 4))} to {String(Math.ceil(Number(size) * 40 / 60))} hours of agent time: about half a million tokens and 40 minutes per guess, four at a
+      time or one by one.</Text>
     {error === null ? null : <Text as="p" size="1" role="alert">[!] {error}</Text>}
   </article>;
 }

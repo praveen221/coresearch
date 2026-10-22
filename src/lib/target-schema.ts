@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { fitScoresSchema } from './fit-schema.ts';
 import { text } from './profile-schema.ts';
 
 export const labKinds = ['university', 'independent'] as const;
@@ -6,27 +7,18 @@ export const linkKinds = ['professor', 'programme', 'university', 'lab', 'public
 export const regions = ['us', 'uk', 'europe', 'canada', 'asia-pacific', 'other'] as const;
 export const pathways = ['proposal', 'pitch'] as const;
 export const openings = ['yes', 'no', 'unknown'] as const;
-export const fitFacets = ['topic', 'method', 'scale', 'venue', 'skill', 'funding', 'alumni'] as const;
 export type LabKind = (typeof labKinds)[number];
 export type LinkKind = (typeof linkKinds)[number];
 export type Region = (typeof regions)[number];
 export type Pathway = (typeof pathways)[number];
 export type Opening = (typeof openings)[number];
-export type FitFacet = (typeof fitFacets)[number];
 
 export const regionLabels: Record<Region, string> = {
   us: 'US', uk: 'UK', europe: 'Europe', canada: 'Canada', 'asia-pacific': 'Asia-Pacific', other: 'Other',
 };
 export const pathwayLabels: Record<Pathway, string> = { proposal: 'Proposal', pitch: 'Pitch' };
-export const fitLabels: Record<FitFacet, string> = {
-  topic: 'Topic', method: 'Methods', scale: 'Scale', venue: 'Venues', skill: 'Skills', funding: 'Funding', alumni: 'Alumni',
-};
-export const fitScoresSchema = z.partialRecord(z.enum(fitFacets), z.number().int().min(0).max(3).nullable());
-export type FitScores = z.infer<typeof fitScoresSchema>;
-
-export function fitTotal(scores: FitScores, facets: readonly FitFacet[] = fitFacets): number | null {
-  const known = facets.filter((facet) => scores[facet] !== undefined);
-  return known.length === 0 ? null : known.reduce((sum, facet) => sum + (scores[facet] ?? 0), 0);
+export function onFinalList(target: Readonly<{ notes: Readonly<Record<string, string>> }>): boolean {
+  return target.notes['Final list'] !== undefined;
 }
 
 export function defaultPathway(region: Region | null): Pathway {

@@ -3,23 +3,22 @@
 import { Fragment, useEffect, useState, useTransition } from 'react';
 import type { ReactElement } from 'react';
 import { Button, Checkbox, Flex, Heading, Select, Table, Text, TextArea, TextField } from '@radix-ui/themes';
-import { importProfessorList, markPitch, previewProfessorList, savePitchEdit, setTargetPath } from '../app/actions.ts';
-import { fitAnchors, outreachListSchema, pitchStatuses, pitchWordLimit, targetOutreachSchema } from '../lib/outreach-schema.ts';
+import { importProfessorList, markPitch, previewProfessorList, saveFitWeight, savePitchEdit, setTargetPath } from '../app/actions.ts';
+import { fitTotal, weightLabels } from '../lib/fit-schema.ts';
+import type { FitKind, FitTotal } from '../lib/fit-schema.ts';
+import { outreachListSchema, pitchStatuses, pitchWordLimit, targetOutreachSchema } from '../lib/outreach-schema.ts';
 import type { Contact, CvCutout, Fit, ListPreview, OutreachRow, Pitch, PitchStatus, TargetOutreach } from '../lib/outreach-schema.ts';
 import type { Clip, Research, Source } from '../lib/research-schema.ts';
-import { fitFacets, fitLabels, fitTotal, pathwayLabels, pathways, regionLabels, regions } from '../lib/target-schema.ts';
-import type { FitFacet, Opening, Pathway, Region, Target } from '../lib/target-schema.ts';
+import { pathwayLabels, pathways, regionLabels, regions } from '../lib/target-schema.ts';
+import type { Opening, Pathway, Region, Target } from '../lib/target-schema.ts';
 import { Cutout, RefText, sourceHref } from './research-panels.tsx';
 import { Shell } from './shell.tsx';
 import { useLive } from './use-live.ts';
+import { plural } from '../lib/words.ts';
 import styles from './ui.module.css';
 
 const openingLabels: Record<Opening, string> = { yes: 'Taking students', no: 'Not taking students', unknown: 'Not checked' };
 const pitchLabels: Record<PitchStatus, string> = { draft: 'Draft ready', sent: 'Sent', replied: 'Replied', declined: 'Declined' };
-
-function plural(count: number, word: string): string {
-  return `${String(count)} ${word}${count === 1 ? '' : 's'}`;
-}
 
 function wordCount(text: string): number {
   return text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
@@ -93,58 +92,6 @@ function ImportList(): ReactElement {
 
 const finalList = (row: OutreachRow): boolean => row.notes['Final list'] !== undefined;
 
-function sendBy(deadline: string): string {
-  const date = new Date(`${deadline}T00:00:00Z`);
-  date.setUTCDate(date.getUTCDate() - 28);
-  return date.toISOString().slice(0, 10);
-}
-
-function StepLine({ row }: Readonly<{ row: OutreachRow }>): ReactElement {
-  return <li><Text size="2"><a href={`/targets/${String(row.targetId)}`}>{row.professor}</a>
-    <Text color="gray">{row.university === null ? '' : ` · ${row.university}`}{finalList(row) ? ' · final list' : ''}{row.openings === 'yes' ? ' · taking students' : ''}
-      {row.deadline === null ? ' · deadline not checked' : ` · deadline ${row.deadline}, send by ${sendBy(row.deadline)}`}
-      {row.contacts.length === 0 ? '' : ` · shared contact: ${row.contacts.map((contact) => contact.collaborator).join(', ')}`}</Text></Text></li>;
-}
-
-function NextSteps({ rows }: Readonly<{ rows: readonly OutreachRow[] }>): ReactElement | null {
-  const pitch = rows.filter((row) => row.pathway === 'pitch');
-  const byDeadline = (a: OutreachRow, b: OutreachRow): number => (a.deadline ?? '9999').localeCompare(b.deadline ?? '9999');
-  const ready = pitch.filter((row) => row.pitch === 'draft').sort((a, b) => Number(finalList(b)) - Number(finalList(a))
-    || Number(b.openings === 'yes') - Number(a.openings === 'yes') || byDeadline(a, b));
-  const yourself = pitch.filter((row) => row.pitch === null && row.hold !== null)
-    .sort((a, b) => Number(finalList(b)) - Number(finalList(a)) || byDeadline(a, b));
-  const proposals = rows.filter((row) => row.pathway === 'proposal')
-    .sort((a, b) => Number(finalList(b)) - Number(finalList(a)) || byDeadline(a, b));
-  const waiting = pitch.filter((row) => row.pitch === 'sent').sort(byDeadline);
-  if (ready.length + yourself.length + waiting.length + proposals.length === 0) return null;
-  return <section aria-labelledby="next-heading" className={styles['section']}>
-    <Heading as="h2" size="3" id="next-heading">Your next steps</Heading>
-    {ready.length === 0 ? null : <>
-      <Text as="p" size="2" weight="medium" mt="3">Review, edit in your own voice, and send: your final list first, then confirmed openings and the earliest deadlines</Text>
-      <ol className={styles['briefList']}>{ready.map((row) => <StepLine key={row.targetId} row={row} />)}</ol>
-    </>}
-    {yourself.length === 0 ? null : <>
-      <Text as="p" size="2" weight="medium" mt="3">Write these yourself: the programme forbids AI help with applications</Text>
-      <ul className={styles['briefList']}>{yourself.map((row) => <StepLine key={row.targetId} row={row} />)}</ul>
-    </>}
-    {waiting.length === 0 ? null : <>
-      <Text as="p" size="2" weight="medium" mt="3">Sent, waiting for a reply</Text>
-      <ul className={styles['briefList']}>{waiting.map((row) => <StepLine key={row.targetId} row={row} />)}</ul>
-    </>}
-    {proposals.length === 0 ? null : <>
-      <Text as="p" size="2" weight="medium" mt="3">Proposal path: write your own proposal, using the evidence and each programme’s rules</Text>
-      <ul className={styles['briefList']}>{proposals.map((row) => <StepLine key={row.targetId} row={row} />)}</ul>
-    </>}
-    <Text as="p" size="1" color="gray" mt="2">“Send by” is four weeks before the deadline, leaving time for a reply before you apply. Ask a shared contact for an
-      introduction before writing cold.</Text>
-  </section>;
-}
-
-type SortKey = 'rank' | FitFacet | 'deadline' | 'professor';
-const sortLabels: Record<SortKey, string> = {
-  rank: 'Rank', topic: 'Topic', method: 'Methods', scale: 'Scale', venue: 'Venues', skill: 'Skills', funding: 'Funding', alumni: 'Alumni',
-  deadline: 'Deadline', professor: 'Professor',
-};
 const statusFilters = ['all', 'draft', 'hold', 'sent', 'none', 'proposal'] as const;
 type StatusFilter = (typeof statusFilters)[number];
 const statusLabels: Record<StatusFilter, string> = {
@@ -171,14 +118,21 @@ function CvView({ cv }: Readonly<{ cv: CvCutout }>): ReactElement {
   </article>;
 }
 
-export function FitDetail({ fit, clips, sources }: Readonly<{ fit: Fit; clips: readonly Clip[]; sources: readonly Source[] }>): ReactElement {
-  const known = fitFacets.filter((facet) => fit[facet] !== undefined);
-  if (known.length === 0) return <Text as="p" size="2" color="gray">Not scored yet.</Text>;
-  return <div className={styles['facets']}>{fitFacets.map((facet) => {
-    const value = fit[facet];
-    return <details key={facet} className={styles['facet']}>
-      <summary><Text size="2" weight="medium">{fitLabels[facet]} · {value === undefined ? 'not checked' : value.score === null ? 'not found' : `${String(value.score)} / 3`}</Text>
-        {value === undefined ? null : <Text size="2" color="gray"> — {value.finding}</Text>}</summary>
+export function totalText(total: FitTotal | null): string {
+  return total === null ? 'Not scored' : `${String(total.score)} of ${String(total.max)}${total.checked < total.counted
+    ? ` (${String(total.checked)} of ${String(total.counted)} kinds checked)` : ''}`;
+}
+
+export function FitDetail({ fit, kinds, clips, sources }: Readonly<{
+  fit: Fit; kinds: readonly FitKind[]; clips: readonly Clip[]; sources: readonly Source[];
+}>): ReactElement {
+  if (!kinds.some((kind) => fit[kind.key] !== undefined)) return <Text as="p" size="2" color="gray">Not scored yet.</Text>;
+  return <div className={styles['facets']}>{kinds.map((kind) => {
+    const value = fit[kind.key];
+    return <details key={kind.key} className={styles['facet']}>
+      <summary><Text size="2" weight="medium">{kind.label} · {value === undefined ? 'not checked' : value.score === null ? 'not found'
+        : `${String(value.score)} of 3`}</Text>
+        {value === undefined ? <Text size="2" color="gray"> — {kind.question}</Text> : <Text size="2" color="gray"> — {value.finding}</Text>}</summary>
       {value === undefined ? null : <>
         <Text as="p" size="2" mt="2">{value.reason}</Text>
         {value.evidence.map((item, index) => {
@@ -189,7 +143,7 @@ export function FitDetail({ fit, clips, sources }: Readonly<{ fit: Fit; clips: r
             {clip === undefined ? null : <Cutout clip={clip} source={sources.find((source) => source.id === clip.sourceId)} compact />}
           </div>;
         })}
-        <Text as="p" size="1" color="gray" mt="2">Scale: {fitAnchors[facet]} · {value.reviewer}</Text>
+        <Text as="p" size="1" color="gray" mt="2">{kind.question} {kind.anchors} · Scored by {value.reviewer}</Text>
       </>}
     </details>;
   })}</div>;
@@ -255,8 +209,8 @@ function EvidenceRow({ row, columns }: Readonly<{ row: OutreachRow; columns: num
     <Table.Cell colSpan={columns}>
       {failed ? <Text size="2" role="alert">[!] Evidence could not be loaded.</Text> : value === null ? <Text size="2" color="gray">Loading evidence…</Text> : <>
         <Advice clips={value.clips} sources={value.sources} professor={row.professor} />
-        <Heading as="h3" size="3" mt="5">Why {row.professor} fits</Heading>
-        <FitDetail fit={value.fit} clips={value.clips} sources={value.sources} />
+        <Heading as="h3" size="3" mt="5">How well you fit</Heading>
+        <FitDetail fit={value.fit} kinds={value.kinds} clips={value.clips} sources={value.sources} />
         <Heading as="h3" size="3" mt="5">Shared contacts</Heading>
         <ContactDetail contacts={value.contacts} sources={value.sources} />
         <Text as="p" size="2" mt="3"><a href={`/targets/${String(row.targetId)}#outreach`}>Open {row.professor}’s page</a></Text>
@@ -290,62 +244,83 @@ const pathFilters = ['all', ...pathways] as const;
 type PathFilter = (typeof pathFilters)[number];
 const pathFilterLabels: Record<PathFilter, string> = { all: 'Both paths', ...pathwayLabels };
 
-function OutreachTable({ rows }: Readonly<{ rows: readonly OutreachRow[] }>): ReactElement {
-  const [sort, setSort] = useState<SortKey>('rank');
+function WeightControls({ kinds }: Readonly<{ kinds: readonly FitKind[] }>): ReactElement {
+  const [message, setMessage] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  return <details className={styles['category']}>
+    <summary><Text size="2" weight="medium">What counts in your rank</Text>
+      <Text size="2" color="gray"> · {kinds.filter((kind) => kind.weight > 0).map((kind) => `${kind.label}${kind.weight > 1 ? ` ×${String(kind.weight)}` : ''}`)
+        .join(', ')}</Text></summary>
+    <Text as="p" size="2" color="gray" mt="1">Decide how much each kind of fit matters to you. To add your own kinds, such as compute, lab size, or
+      location, ask your agent.</Text>
+    <div className={styles['weights']}>{kinds.map((kind) => <Flex key={kind.key} gap="2" align="center" wrap="wrap">
+      <Select.Root size="1" value={String(kind.weight)} disabled={pending} onValueChange={(next) => {
+        startTransition(async () => {
+          const result = await saveFitWeight(kind.key, Number(next));
+          setMessage(result.ok ? null : result.errors.join(' '));
+        });
+      }}>
+        <Select.Trigger aria-label={`How much ${kind.label} counts`} />
+        <Select.Content>{weightLabels.map((label, weight) => <Select.Item key={label} value={String(weight)}>{label}</Select.Item>)}</Select.Content>
+      </Select.Root>
+      <Text size="2"><Text weight="medium">{kind.label}</Text> <Text color="gray">{kind.question}</Text></Text>
+    </Flex>)}</div>
+    {message === null ? null : <Text as="p" size="2" role="alert">[!] {message}</Text>}
+  </details>;
+}
+
+function OutreachTable({ rows, kinds }: Readonly<{ rows: readonly OutreachRow[]; kinds: readonly FitKind[] }>): ReactElement {
+  const [sort, setSort] = useState('rank');
   const [region, setRegion] = useState<RegionFilter>('all');
   const [path, setPath] = useState<PathFilter>('all');
   const [list, setList] = useState<ListFilter>(rows.some(finalList) ? 'final' : 'all');
   const [status, setStatus] = useState<StatusFilter>('all');
-  const [counted, setCounted] = useState<readonly FitFacet[]>(fitFacets);
   const [open, setOpen] = useState<readonly number[]>([]);
-  if (rows.length === 0) return <Text as="p" size="2" color="gray" mt="3">No professors yet. Import your list or add a target.</Text>;
-  const total = (row: OutreachRow): number | null => fitTotal(row.fit, counted);
-  const ranked = [...rows].filter((row) => total(row) !== null)
-    .sort((a, b) => (total(b) ?? 0) - (total(a) ?? 0) || (b.fit.topic ?? 0) - (a.fit.topic ?? 0) || (b.fit.method ?? 0) - (a.fit.method ?? 0));
+  if (rows.length === 0) return <Text as="p" size="2" color="gray" mt="3">No professors yet. Import your list below, or add one.</Text>;
+  const sortKeys = ['rank', ...kinds.map((kind) => kind.key), 'deadline', 'professor'];
+  const sortLabels: Record<string, string> = { rank: 'Rank', deadline: 'Deadline', professor: 'Professor',
+    ...Object.fromEntries(kinds.map((kind) => [kind.key, kind.label])) };
+  const total = (row: OutreachRow): FitTotal | null => fitTotal(row.fit, kinds);
+  const ranked = [...rows].filter((row) => total(row) !== null).sort((a, b) => (total(b)?.score ?? 0) - (total(a)?.score ?? 0)
+    || kinds.reduce((order, kind) => order || (b.fit[kind.key] ?? 0) - (a.fit[kind.key] ?? 0), 0));
   const rank = new Map(ranked.map((row, index) => [row.targetId, index + 1]));
+  const position = (row: OutreachRow): number => rank.get(row.targetId) ?? 999;
   const byDeadline = (a: OutreachRow, b: OutreachRow): number => (a.deadline ?? '9999').localeCompare(b.deadline ?? '9999');
   const compare = (a: OutreachRow, b: OutreachRow): number => {
     if (sort === 'professor') return a.professor.localeCompare(b.professor);
-    if (sort === 'deadline') return byDeadline(a, b) || (rank.get(a.targetId) ?? 999) - (rank.get(b.targetId) ?? 999);
-    if (sort === 'rank') return (rank.get(a.targetId) ?? 999) - (rank.get(b.targetId) ?? 999) || a.professor.localeCompare(b.professor);
-    return (b.fit[sort] ?? -1) - (a.fit[sort] ?? -1) || (rank.get(a.targetId) ?? 999) - (rank.get(b.targetId) ?? 999);
+    if (sort === 'deadline') return byDeadline(a, b) || position(a) - position(b);
+    if (sort === 'rank') return position(a) - position(b) || a.professor.localeCompare(b.professor);
+    return (b.fit[sort] ?? -1) - (a.fit[sort] ?? -1) || position(a) - position(b);
   };
   const shown = rows.filter((row) => (region === 'all' || (row.region ?? 'unknown') === region) && (path === 'all' || row.pathway === path)
     && (list === 'all' || finalList(row)) && (status === 'all' || pitchStatus(row) === status)).sort(compare);
-  const max = counted.length * 3;
-  const columns = 13;
-  const header = (key: SortKey, label: string = sortLabels[key]): ReactElement => <Table.ColumnHeaderCell
+  const columns = kinds.length + 6;
+  const header = (key: string, label: string, title?: string): ReactElement => <Table.ColumnHeaderCell key={key}
     aria-sort={sort === key ? (key === 'professor' || key === 'deadline' || key === 'rank' ? 'ascending' : 'descending') : 'none'}>
-    <button type="button" className={styles['sortButton']} onClick={() => { setSort(key); }}>{label}{sort === key ? ' ▾' : ''}</button>
+    <button type="button" className={styles['sortButton']} title={title} onClick={() => { setSort(key); }}>{label}{sort === key ? ' ▾' : ''}</button>
   </Table.ColumnHeaderCell>;
   return <>
     <Flex gap="4" mt="3" wrap="wrap" align="center">
-      <Filter label="List" value={list} options={listFilters} labels={listLabels} onChange={setList} />
+      <Filter label="Show" value={list} options={listFilters} labels={listLabels} onChange={setList} />
       <Filter label="Region" value={region} options={regionFilters} labels={regionFilterLabels} onChange={setRegion} />
       <Filter label="Path" value={path} options={pathFilters} labels={pathFilterLabels} onChange={setPath} />
       <Filter label="Status" value={status} options={statusFilters} labels={statusLabels} onChange={setStatus} />
-      <Filter label="Sort by" value={sort} options={['rank', ...fitFacets, 'deadline', 'professor']} labels={sortLabels} onChange={setSort} />
+      <Filter label="Sort by" value={sort} options={sortKeys} labels={sortLabels} onChange={setSort} />
     </Flex>
-    <Flex gap="3" mt="3" wrap="wrap" align="center">
-      <Text size="1" color="gray">Count in rank:</Text>
-      {fitFacets.map((facet) => <Text key={facet} as="label" size="2"><Flex gap="1" align="center">
-        <Checkbox checked={counted.includes(facet)} onCheckedChange={(checked) => {
-          setCounted(checked === true ? fitFacets.filter((item) => item === facet || counted.includes(item)) : counted.filter((item) => item !== facet));
-        }} />{fitLabels[facet]}</Flex></Text>)}
-    </Flex>
-    <Text as="p" size="1" color="gray" mt="2">Showing {String(shown.length)} of {String(rows.length)} · each kind of fit is scored 0–3 by your agent with quoted
-      evidence; – means checked and not found, · means not checked yet. Open a row to see the evidence.</Text>
+    <WeightControls kinds={kinds} />
+    <Text as="p" size="1" color="gray" mt="2">Showing {String(shown.length)} of {String(rows.length)}. Each kind of fit is scored 0 to 3 from quoted
+      evidence; “–” means checked and not found, “·” means not checked yet. Open a professor to see the evidence.</Text>
     <div className={styles['tableScroll']}>
       <Table.Root size="1">
         <Table.Header>
           <Table.Row>
             {header('rank', '#')}
-            {header('professor')}
+            {header('professor', 'Professor')}
             <Table.ColumnHeaderCell>Fit</Table.ColumnHeaderCell>
-            {fitFacets.map((facet) => <Fragment key={facet}>{header(facet)}</Fragment>)}
-            {header('deadline')}
+            {kinds.map((kind) => header(kind.key, kind.label, kind.question))}
+            {header('deadline', 'Deadline')}
             <Table.ColumnHeaderCell>Contacts</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Pitch</Table.ColumnHeaderCell>
+            <Table.ColumnHeaderCell>Next</Table.ColumnHeaderCell>
           </Table.Row>
         </Table.Header>
         <Table.Body>{shown.map((row) => {
@@ -359,16 +334,16 @@ function OutreachTable({ rows }: Readonly<{ rows: readonly OutreachRow[] }>): Re
                   onClick={() => { setOpen(expanded ? open.filter((id) => id !== row.targetId) : [...open, row.targetId]); }}>
                   {expanded ? '[−]' : '[+]'} {row.professor}</button>
                 <Text as="p" size="1" color="gray">{row.university ?? 'Independent lab'} · {row.region === null ? 'region unknown' : regionLabels[row.region]}
-                  {finalList(row) ? ' · final list' : ''}</Text>
+                  {' · '}{row.pathway === 'proposal' ? 'research proposal' : 'pitch'}{finalList(row) ? ' · final list' : ''}</Text>
               </Table.RowHeaderCell>
-              <Table.Cell><Text weight="medium">{sum === null ? '—' : `${String(sum)}/${String(max)}`}</Text></Table.Cell>
-              {fitFacets.map((facet) => <Table.Cell key={facet} className={counted.includes(facet) ? styles['score'] : styles['scoreMuted']}>
-                {score(row.fit[facet])}</Table.Cell>)}
+              <Table.Cell><Text weight="medium">{sum === null ? '—' : `${String(sum.score)}/${String(sum.max)}`}</Text></Table.Cell>
+              {kinds.map((kind) => <Table.Cell key={kind.key} className={kind.weight > 0 ? styles['score'] : styles['scoreMuted']}>
+                {score(row.fit[kind.key])}</Table.Cell>)}
               <Table.Cell>{row.deadline ?? '—'}</Table.Cell>
               <Table.Cell>{row.contacts.length === 0 ? '—' : row.contacts.map((contact) => `${contact.collaborator}${contact.match === 'initial' ? ' (?)' : ''}`)
                 .join(', ')}</Table.Cell>
-              <Table.Cell>{row.pathway === 'proposal' ? 'Your proposal' : row.pitch !== null ? pitchLabels[row.pitch] : row.hold === null ? 'Not drafted'
-                : 'On hold: write it yourself'}</Table.Cell>
+              <Table.Cell>{row.pathway === 'proposal' ? <a href={`/targets/${String(row.targetId)}`}>Research proposal</a>
+                : row.pitch !== null ? pitchLabels[row.pitch] : row.hold === null ? 'No draft yet' : 'Write it yourself'}</Table.Cell>
             </Table.Row>
             {expanded ? <EvidenceRow row={row} columns={columns} /> : null}
           </Fragment>;
@@ -378,25 +353,25 @@ function OutreachTable({ rows }: Readonly<{ rows: readonly OutreachRow[] }>): Re
   </>;
 }
 
-export function OutreachView({ initialTargets, initialRows }: Readonly<{ initialTargets: Target[]; initialRows: OutreachRow[] }>): ReactElement {
-  const { value, failed } = useLive('/api/outreach', outreachListSchema, { rows: initialRows });
+export function OutreachView({ initialTargets, initialRows, initialKinds }: Readonly<{
+  initialTargets: Target[]; initialRows: OutreachRow[]; initialKinds: FitKind[];
+}>): ReactElement {
+  const { value, failed } = useLive('/api/outreach', outreachListSchema, { rows: initialRows, kinds: initialKinds });
   const pitches = value.rows.filter((row) => row.pathway === 'pitch');
-  return <Shell current="outreach" initialTargets={initialTargets} section="Outreach" step="04 / Outreach" wide>
-    <Text as="p" size="2" color="gray">[ Outreach ]</Text>
-    <Heading as="h1" size="7" className={styles['title']}>Outreach</Heading>
+  return <Shell current="outreach" initialTargets={initialTargets} section="Professors" step="Professors" wide>
+    <Text as="p" size="2" color="gray">[ Professors ]</Text>
+    <Heading as="h1" size="7" className={styles['title']}>Professors</Heading>
     <Text as="p" color="gray">
-      Every professor you are considering, and the path each takes. UK and European programmes take the proposal path: your agent builds
-      strong research directions and you write the proposal. Elsewhere you get a connection pitch, grounded in your CV and their papers, that
-      you edit and send yourself. Your agent never contacts anyone.
+      Everyone you are considering, ranked by how well you fit. UK and European programmes take a research proposal: Coresearch tests research
+      directions with you and you write the proposal. Elsewhere you write to the professor: Coresearch drafts a short pitch from your CV and their
+      papers that you edit and send. Coresearch never contacts anyone.
     </Text>
-    <Text as="p" size="2" mt="2">{plural(pitches.length, 'pitch-path professor')} · {String(pitches.filter((row) => row.pitch !== null).length)} drafted ·
-      {' '}{String(pitches.filter((row) => row.pitch === 'sent' || row.pitch === 'replied').length)} sent · {String(value.rows.length - pitches.length)} on the
-      proposal path</Text>
+    <Text as="p" size="2" mt="2">{plural(value.rows.length - pitches.length, 'research proposal')} · {plural(pitches.length, 'pitch')}
+      {' '}({String(pitches.filter((row) => row.pitch !== null).length)} drafted, {String(pitches.filter((row) => row.pitch === 'sent' || row.pitch === 'replied').length)} sent)</Text>
     <section aria-labelledby="professors-heading" className={styles['section']}>
-      <Heading as="h2" size="3" id="professors-heading">Professors ranked by fit</Heading>
-      <OutreachTable rows={value.rows} />
+      <Heading as="h2" size="3" id="professors-heading">Ranked by fit</Heading>
+      <OutreachTable rows={value.rows} kinds={value.kinds} />
     </section>
-    <NextSteps rows={value.rows} />
     <ImportList />
     {failed ? <Text as="p" size="2" color="gray" role="status">Live refresh unavailable; retrying.</Text> : null}
   </Shell>;
@@ -482,6 +457,32 @@ function PathControls({ target }: Readonly<{ target: Target }>): ReactElement {
   </Flex>;
 }
 
+function PitchSection({ target, pitch, clip }: Readonly<{ target: Target; pitch: Pitch | null; clip: (id: number | null) => ReactElement | null }>): ReactElement {
+  if (target.pitchHold !== null && pitch === null) {
+    return <Text as="p" size="2" mt="3">[!] There is no draft: {target.pitchHold} Write to {target.professor} yourself. Everything below, what they look for,
+      how you fit, and their papers, is here to help you write it.</Text>;
+  }
+  if (pitch === null) return <Text as="p" size="2" color="gray" mt="3">No draft yet. Ask your agent to draft a pitch to {target.professor}.</Text>;
+  return <>
+    <Heading as="h3" size="3" mt="4">Your email</Heading>
+    <Text as="p" size="2" color="gray">{pitchLabels[pitch.status]}{pitch.statusAt === null ? '' : ` · ${new Date(pitch.statusAt).toUTCString().slice(5, 16)}`}.
+      {' '}Edit it in your own voice, attach your CV, and send it yourself. Then mark it sent.</Text>
+    <PitchEditor key={pitch.updatedAt} pitch={pitch} />
+    <details className={styles['category']}>
+      <summary><Text size="2" weight="medium">Why the email says what it says · {plural(pitch.connections.length, 'connection')} and a question</Text></summary>
+      {pitch.connections.map((connection, index) => <article key={index} className={styles['connection']}>
+        <Text as="p" size="2" weight="medium">{connection.note}</Text>
+        <Text as="p" size="1" color="gray" mt="2">Your CV{connection.cvPage === null ? '' : `, p. ${String(connection.cvPage)}`}</Text>
+        <blockquote className={styles['cvQuote']}>{connection.cvQuote}</blockquote>
+        {clip(connection.clipId)}
+      </article>)}
+      <Text as="p" size="2" weight="medium" mt="4">The question you could pursue together</Text>
+      <Text as="p" size="2" mt="1">{pitch.question}</Text>
+      <Text as="p" size="2" color="gray" mt="1"><RefText text={pitch.questionCheck} /></Text>
+    </details>
+  </>;
+}
+
 export function OutreachPanel({ target, research, initial }: Readonly<{ target: Target; research: Research; initial: TargetOutreach }>): ReactElement {
   const { value } = useLive(`/api/targets/${String(target.id)}/outreach`, targetOutreachSchema, initial);
   const clip = (id: number | null): ReactElement | null => {
@@ -489,60 +490,40 @@ export function OutreachPanel({ target, research, initial }: Readonly<{ target: 
     return found === undefined ? null : <Cutout clip={found} source={research.sources.find((source) => source.id === found.sourceId)} compact />;
   };
   const notes = Object.entries(target.notes);
-  const { pitch } = value;
   const aiRules = distinct(research.clips, 'requirement').filter((item) => /\b(AI|artificial intelligence|generative|ChatGPT|LLM)\b/i.test(item.quote));
+  const pitchPath = target.pathway === 'pitch';
   return <section aria-labelledby="outreach-heading" className={styles['section']}>
-    <Heading as="h2" size="4" id="outreach-heading">Outreach</Heading>
-    <Text as="p" size="2" mt="2">
-      {target.pathway === 'proposal'
-        ? 'Proposal path: your agent gathers the evidence, tests directions, and records each programme’s rules; you choose your own question and write the proposal yourself. There is no outreach draft.'
-        : 'Pitch path: a short email, grounded in your CV and their papers, that you edit and send yourself. Your agent never sends anything.'}
+    <Heading as="h2" size="4" id="outreach-heading">{pitchPath ? `Your pitch to ${target.professor}` : 'Fit and contact'}</Heading>
+    <Text as="p" size="2" mt="2" color="gray">
+      {pitchPath ? 'A short email, grounded in your CV and their papers, that you edit and send yourself. Coresearch never sends anything.'
+        : 'For a research proposal you write the proposal yourself. This page gathers what the professor looks for, how well you fit, and the '
+          + 'programme’s rules.'}
     </Text>
-    <PathControls target={target} />
+    {aiRules.length === 0 ? null : <details className={styles['category']} open>
+      <summary><Text size="2" weight="medium">[!] Programme rules on AI · {String(aiRules.length)}</Text></summary>
+      <Text as="p" size="2" color="gray" mt="1">Read these before you use anything Coresearch wrote: some programmes forbid AI-generated ideas or wording.</Text>
+      {aiRules.map((item) => <Cutout key={item.id} clip={item} source={research.sources.find((source) => source.id === item.sourceId)} compact />)}
+    </details>}
+    {pitchPath ? <PitchSection target={target} pitch={value.pitch} clip={clip} /> : null}
+    <Advice clips={research.clips} sources={research.sources} professor={target.professor} />
+    <Heading as="h3" size="3" mt="5">How well you fit</Heading>
+    <Text as="p" size="2" color="gray">{totalText(fitTotal(target.fit, value.kinds))}. Each kind is scored 0 to 3 from quoted evidence: a line of
+      your CV beside a cutout of their work.</Text>
+    <FitDetail fit={value.fit} kinds={value.kinds} clips={value.clips} sources={value.sources} />
+    <Heading as="h3" size="3" mt="5">Shared contacts</Heading>
+    <Text as="p" size="2" color="gray">People from your CV who co-wrote papers with {target.professor}, with the line from your CV and the paper’s
+      author list. Ask one of them for an introduction before writing cold.</Text>
+    <ContactDetail contacts={value.contacts} sources={value.sources} />
+    <Heading as="h3" size="3" mt="5">Openings and path</Heading>
     <dl className={styles['fields']}>
       <div className={styles['field']}><dt>Openings</dt><dd>{openingLabels[target.openings.status]}{clip(target.openings.clipId)}</dd></div>
       <div className={styles['field']}><dt>Deadline</dt><dd>{target.deadline === null ? 'Not checked' : target.deadline.date}
         {target.deadline === null ? null : clip(target.deadline.clipId)}</dd></div>
     </dl>
-    <Heading as="h3" size="3" mt="5">Fit</Heading>
-    <Text as="p" size="2" color="gray">{fitTotal(target.fit) === null ? 'Not scored yet.'
-      : `${String(fitTotal(target.fit))} of ${String(fitFacets.filter((facet) => target.fit[facet] !== undefined).length * 3)} across the kinds checked. `}
-      Each kind is scored 0–3 with quoted evidence from your CV and their work.</Text>
-    <FitDetail fit={value.fit} clips={value.clips} sources={value.sources} />
-    <Heading as="h3" size="3" mt="5">Shared contacts</Heading>
-    <Text as="p" size="2" color="gray">People from your CV who co-wrote papers with {target.professor}, with the line from your CV and the paper’s
-      author list.</Text>
-    <ContactDetail contacts={value.contacts} sources={value.sources} />
-    {aiRules.length === 0 ? null : <details className={styles['category']} open>
-      <summary><Text size="2" weight="medium">Programme rules on AI · {String(aiRules.length)}</Text></summary>
-      <Text as="p" size="2" color="gray" mt="1">Read these before you use anything Coresearch wrote: some programmes forbid AI-generated ideas or wording.</Text>
-      {aiRules.map((item) => <Cutout key={item.id} clip={item} source={research.sources.find((source) => source.id === item.sourceId)} compact />)}
-    </details>}
-    <Advice clips={research.clips} sources={research.sources} professor={target.professor} />
+    <PathControls target={target} />
     {notes.length === 0 ? null : <details className={styles['category']}>
       <summary><Text size="2">Your notes from the list · {String(notes.length)}</Text></summary>
       <dl className={styles['fields']}>{notes.map(([key, note]) => <div key={key} className={styles['field']}><dt>{key}</dt><dd>{note}</dd></div>)}</dl>
     </details>}
-    {target.pathway === 'proposal' ? null : target.pitchHold !== null && pitch === null
-      ? <Text as="p" size="2" mt="4">[!] No draft: {target.pitchHold} Write to {target.professor} yourself; their papers and cutouts are in the
-        Library tab.</Text>
-      : pitch === null
-      ? <Text as="p" size="2" color="gray" mt="4">No draft yet. Ask your agent to draft a pitch for {target.professor}.</Text>
-      : <>
-        <Heading as="h3" size="3" mt="5">Why you and {target.professor}</Heading>
-        <Text as="p" size="1" color="gray">{pitchLabels[pitch.status]}{pitch.statusAt === null ? '' : ` · ${new Date(pitch.statusAt).toUTCString().slice(5, 16)}`}</Text>
-        {pitch.connections.map((connection, index) => <article key={index} className={styles['connection']}>
-          <Text as="p" size="2" weight="medium">{connection.note}</Text>
-          <Text as="p" size="1" color="gray" mt="2">Your CV{connection.cvPage === null ? '' : `, p. ${String(connection.cvPage)}`}</Text>
-          <blockquote className={styles['cvQuote']}>{connection.cvQuote}</blockquote>
-          {clip(connection.clipId)}
-        </article>)}
-        <Heading as="h3" size="3" mt="5">The question you could pursue together</Heading>
-        <Text as="p" mt="2">{pitch.question}</Text>
-        <Text as="p" size="2" color="gray" mt="1"><RefText text={pitch.questionCheck} /></Text>
-        <Heading as="h3" size="3" mt="5">Your email</Heading>
-        <Text as="p" size="2" color="gray">Edit it in your own voice, attach your CV, and send it yourself. Then mark it sent.</Text>
-        <PitchEditor key={pitch.updatedAt} pitch={pitch} />
-      </>}
   </section>;
 }
