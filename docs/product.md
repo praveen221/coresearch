@@ -14,7 +14,7 @@ Start with a known lab or supervisor and combine student, professor, and lab con
 
 ## Scope
 
-A portable Agent Skill operating a local Next.js application and SQLite database. No deployment. Information comes through chat or the UI; both use the same server-side functions. Navigation starts with Profile and Workspace, with labs beneath Workspace. A lab will open on its latest progress, with a paper-evidence investigation board. Lab discovery comes later.
+A portable Agent Skill operating a local Next.js application and SQLite database, distributed through GitHub. No hosted service: the app runs on the student's computer, and a student may share it privately with a collaborator. Information comes through chat or the UI; both use the same server-side functions. The app opens on what to do next. Lab discovery comes later.
 
 The harness researches the lab, reads papers, identifies promising directions, and repeatedly challenges their novelty. It asks the student for input throughout. Exact paper passages support its claims.
 
@@ -23,6 +23,8 @@ The outcome is five to ten defensible directions, with research questions, subqu
 ## Paths
 
 A student may consider many professors. UK and European programmes expect a research proposal: the harness builds strong tracks and briefs, and the student writes the proposal. Elsewhere admission runs through fit with a supervisor: the harness drafts a connection pitch, grounded in the student's CV and the professor's papers, that the student edits and sends. The harness never contacts anyone.
+
+Fit is the student's own: they choose what kinds of fit matter and how much, and every score shows its evidence. The app opens on what to do next across all applications, in plain words for students who never use coding agents. A student can export everything for anyone to read.
 
 ## Starting case
 
