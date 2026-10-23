@@ -248,9 +248,10 @@ async function main(): Promise<unknown> {
       if (revision !== null) writeFileSync(installedRevision, `${revision}\n`);
       rememberWorkspace(settings, workspace);
       const missing = reconcileFiles(workspace);
-      return { initialized: true, workspace, ...(missing.papers + missing.pages === 0 ? {} : {
-        missingFiles: missing, next: 'Some saved files are not in this folder. Download papers again with papers:fetch --target <id> for each '
-          + 'professor, and save pages again with source:page.',
+      const steps = [missing.papers > 0 ? 'download papers again with papers:fetch --target <id> for each professor' : null,
+        missing.pages > 0 ? 'save pages again with source:page' : null].flatMap((step) => step === null ? [] : [step]);
+      return { initialized: true, workspace, ...(steps.length === 0 ? {} : {
+        missingFiles: missing, next: `Some saved files are not in this folder: ${steps.join(', and ')}.`,
       }) };
     }
     case 'start':

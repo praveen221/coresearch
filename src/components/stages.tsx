@@ -11,7 +11,7 @@ export function Stages({ stages }: Readonly<{ stages: readonly Stage[] }>): Reac
   return <ol className={styles['stages']} aria-label="Progress">{stages.map((stage) => <li key={stage.label}
     className={stage.state === 'done' ? styles['stageDone'] : stage.state === 'todo' ? styles['stageTodo'] : stage.state === 'blocked'
       ? styles['stageBlocked'] : styles['stageActive']}>
-    <span aria-hidden="true">{markers[stage.state]} </span><span className={styles['visuallyHidden']}>{spoken[stage.state]}: </span>
+    <span aria-hidden="true">{markers[stage.state]} </span><span className={styles['srOnly']}>{spoken[stage.state]}: </span>
     {stage.label}{stage.detail === null ? null : <Text color="gray"> · {stage.detail}</Text>}
   </li>)}</ol>;
 }
