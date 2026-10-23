@@ -34,7 +34,7 @@ export function IdeasView({ initialIdeas, initialTargets }: Readonly<{ initialId
     });
   }
 
-  return <Shell current="ideas" initialTargets={initialTargets} section="Ideas" step="02 / Ideas">
+  return <Shell current="ideas" initialTargets={initialTargets} section="Your ideas" step="Ideas">
     <Text as="p" size="2" color="gray">[ What you bring ]</Text>
     <Heading as="h1" size="7" className={styles['title']}>Your ideas</Heading>
     <Text as="p" color="gray">

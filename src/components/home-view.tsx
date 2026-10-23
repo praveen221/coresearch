@@ -61,19 +61,19 @@ function ProposalCard({ item, today }: Readonly<{ item: ProposalItem; today: str
 
 function PitchTable({ items, today }: Readonly<{ items: readonly PitchItem[]; today: string }>): ReactElement {
   return <div className={styles['tableScroll']}>
-    <Table.Root size="1">
+    <Table.Root size="1" className={styles['cardTable']}>
       <Table.Header><Table.Row>
         {['Fit rank', 'Professor', 'Fit', 'Pitch', 'Send by', 'Deadline'].map((name) => <Table.ColumnHeaderCell key={name}>{name}</Table.ColumnHeaderCell>)}
       </Table.Row></Table.Header>
       <Table.Body>{items.map((item) => <Table.Row key={item.targetId}>
-        <Table.Cell>{item.rank ?? '—'}</Table.Cell>
+        <Table.Cell data-label="Fit rank">{item.rank ?? '—'}</Table.Cell>
         <Table.RowHeaderCell><a href={`/targets/${String(item.targetId)}`}>{item.professor}</a>
           <Text as="p" size="1" color="gray">{item.university ?? 'Independent lab'}</Text></Table.RowHeaderCell>
-        <Table.Cell>{item.fit === null ? '—' : `${String(item.fit.score)}/${String(item.fit.max)}`}</Table.Cell>
-        <Table.Cell>{pitchStateLabels[item.status]}</Table.Cell>
-        <Table.Cell>{item.status === 'sent' || item.status === 'replied' || item.status === 'declined' || item.sendBy === null ? '—'
+        <Table.Cell data-label="Fit">{item.fit === null ? '—' : `${String(item.fit.score)}/${String(item.fit.max)}`}</Table.Cell>
+        <Table.Cell data-label="Pitch">{pitchStateLabels[item.status]}</Table.Cell>
+        <Table.Cell data-label="Send by">{item.status === 'sent' || item.status === 'replied' || item.status === 'declined' || item.sendBy === null ? '—'
           : shortDate(item.sendBy, today)}</Table.Cell>
-        <Table.Cell>{item.deadline === null ? '—' : shortDate(item.deadline, today)}</Table.Cell>
+        <Table.Cell data-label="Deadline">{item.deadline === null ? '—' : shortDate(item.deadline, today)}</Table.Cell>
       </Table.Row>)}</Table.Body>
     </Table.Root>
   </div>;

@@ -16,14 +16,14 @@ export function SourceView({ initialTargets, target, initialResearch, id }: Read
   const { value: research, failed } = useLive(`/api/targets/${String(target.id)}/research`, researchSchema, initialResearch);
   const source = research.sources.find((item) => item.id === id);
   if (source === undefined) {
-    return <Shell current={target.id} initialTargets={initialTargets} section="Workspace" step="04 / Source">
+    return <Shell current={target.id} initialTargets={initialTargets} section="Professors" step="Paper">
       <Heading as="h1" size="7" className={styles['title']}>Source removed</Heading>
       <Text as="p" color="gray"><a href={`/targets/${String(target.id)}`}>Return to {targetName(target)}.</a></Text>
     </Shell>;
   }
   const clips = research.clips.filter((clip) => clip.sourceId === source.id);
   const tracks = new Map(research.tracks.map((track) => [track.id, track]));
-  return <Shell current={target.id} initialTargets={initialTargets} section={`Workspace · ${targetName(target)}`} step="04 / Source">
+  return <Shell current={target.id} initialTargets={initialTargets} section={targetName(target)} step="Paper">
     <Text as="p" size="2" color="gray">[ {source.kind === 'paper' ? 'Paper' : 'Web page'} ]</Text>
     <Heading as="h1" size="6" className={styles['title']}>{source.title}</Heading>
     <dl className={styles['fields']}>

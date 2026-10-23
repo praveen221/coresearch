@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import type { ReactElement, ReactNode } from 'react';
 import { Box, Flex, Text } from '@radix-ui/themes';
 import { AppearanceToggle } from './appearance-toggle.tsx';
@@ -28,6 +29,7 @@ export function Shell({ current, initialTargets, section, step, wide = false, ch
   const labs = targets.filter((target) => target.pathway === 'proposal');
   const pitches = targets.filter((target) => target.pathway === 'pitch');
   const pitchOpen = pitches.some((target) => target.id === current);
+  const [menu, setMenu] = useState(false);
   function link(href: string, selected: boolean, label: string, detail: string | null = null): ReactElement {
     return <a href={href} aria-current={selected ? 'page' : undefined} className={selected ? styles['selected'] : styles['navLink']}>
       <span aria-hidden="true" className={styles['navMarker']}>{selected ? '[·]' : '[ ]'}</span>
@@ -38,8 +40,15 @@ export function Shell({ current, initialTargets, section, step, wide = false, ch
     <div className={styles['shell']}>
       <a href="#content" className={styles['skip']}>Skip to content</a>
       <aside className={styles['sidebar']}>
-        <Text size="5" weight="bold" className={styles['brand']}>coresearch<span aria-hidden="true">_</span></Text>
-        <nav aria-label="Main navigation" className={styles['navigation']}>
+        <div className={styles['brandRow']}>
+          <Text size="5" weight="bold" className={styles['brand']}>coresearch<span aria-hidden="true">_</span></Text>
+          <span className={styles['mobileTools']}>
+            <AppearanceToggle />
+            <button type="button" className={styles['menuButton']} aria-expanded={menu} aria-controls="main-navigation"
+              onClick={() => { setMenu(!menu); }}>{menu ? '[ close ]' : '[ menu ]'}</button>
+          </span>
+        </div>
+        <nav id="main-navigation" aria-label="Main navigation" className={menu ? styles['navigationOpen'] : styles['navigation']}>
           {link('/', current === 'home', 'Home', 'What to do next')}
           {link('/profile', current === 'profile', 'Your profile')}
           {link('/ideas', current === 'ideas', 'Your ideas')}

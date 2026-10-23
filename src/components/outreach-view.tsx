@@ -311,7 +311,7 @@ function OutreachTable({ rows, kinds }: Readonly<{ rows: readonly OutreachRow[];
     <Text as="p" size="1" color="gray" mt="2">Showing {String(shown.length)} of {String(rows.length)}. Each kind of fit is scored 0 to 3 from quoted
       evidence; “–” means checked and not found, “·” means not checked yet. Open a professor to see the evidence.</Text>
     <div className={styles['tableScroll']}>
-      <Table.Root size="1">
+      <Table.Root size="1" className={styles['cardTable']}>
         <Table.Header>
           <Table.Row>
             {header('rank', '#')}
@@ -328,7 +328,7 @@ function OutreachTable({ rows, kinds }: Readonly<{ rows: readonly OutreachRow[];
           const sum = total(row);
           return <Fragment key={row.targetId}>
             <Table.Row>
-              <Table.Cell>{rank.get(row.targetId) ?? '—'}</Table.Cell>
+              <Table.Cell data-label="#">{rank.get(row.targetId) ?? '—'}</Table.Cell>
               <Table.RowHeaderCell>
                 <button type="button" className={styles['sortButton']} aria-expanded={expanded}
                   onClick={() => { setOpen(expanded ? open.filter((id) => id !== row.targetId) : [...open, row.targetId]); }}>
@@ -336,13 +336,13 @@ function OutreachTable({ rows, kinds }: Readonly<{ rows: readonly OutreachRow[];
                 <Text as="p" size="1" color="gray">{row.university ?? 'Independent lab'} · {row.region === null ? 'region unknown' : regionLabels[row.region]}
                   {' · '}{row.pathway === 'proposal' ? 'research proposal' : 'pitch'}{finalList(row) ? ' · final list' : ''}</Text>
               </Table.RowHeaderCell>
-              <Table.Cell><Text weight="medium">{sum === null ? '—' : `${String(sum.score)}/${String(sum.max)}`}</Text></Table.Cell>
-              {kinds.map((kind) => <Table.Cell key={kind.key} className={kind.weight > 0 ? styles['score'] : styles['scoreMuted']}>
-                {score(row.fit[kind.key])}</Table.Cell>)}
-              <Table.Cell>{row.deadline ?? '—'}</Table.Cell>
-              <Table.Cell>{row.contacts.length === 0 ? '—' : row.contacts.map((contact) => `${contact.collaborator}${contact.match === 'initial' ? ' (?)' : ''}`)
-                .join(', ')}</Table.Cell>
-              <Table.Cell>{row.pathway === 'proposal' ? <a href={`/targets/${String(row.targetId)}`}>Research proposal</a>
+              <Table.Cell data-label="Fit"><Text weight="medium">{sum === null ? '—' : `${String(sum.score)}/${String(sum.max)}`}</Text></Table.Cell>
+              {kinds.map((kind) => <Table.Cell key={kind.key} data-kind data-label={kind.label}
+                className={kind.weight > 0 ? styles['score'] : styles['scoreMuted']}>{score(row.fit[kind.key])}</Table.Cell>)}
+              <Table.Cell data-label="Deadline">{row.deadline ?? '—'}</Table.Cell>
+              <Table.Cell data-label="Contacts" data-empty={row.contacts.length === 0 ? true : undefined}>{row.contacts.length === 0 ? '—'
+                : row.contacts.map((contact) => `${contact.collaborator}${contact.match === 'initial' ? ' (?)' : ''}`).join(', ')}</Table.Cell>
+              <Table.Cell data-label="Next">{row.pathway === 'proposal' ? <a href={`/targets/${String(row.targetId)}`}>Research proposal</a>
                 : row.pitch !== null ? pitchLabels[row.pitch] : row.hold === null ? 'No draft yet' : 'Write it yourself'}</Table.Cell>
             </Table.Row>
             {expanded ? <EvidenceRow row={row} columns={columns} /> : null}

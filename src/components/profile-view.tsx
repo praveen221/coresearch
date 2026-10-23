@@ -54,7 +54,7 @@ export function ProfileView({ initialProfile, initialTargets }: Readonly<{
 
   const funding = profile.needsFunding === null ? null : profile.needsFunding ? 'Funding needed' : 'Funding not needed';
   return (
-    <Shell current="profile" initialTargets={initialTargets} section="Profile" step="01 / Setup">
+    <Shell current="profile" initialTargets={initialTargets} section="Your profile" step="Profile">
           <Text as="p" size="2" color="gray">[ Your starting point ]</Text>
           <Heading as="h1" size="7" className={styles['title']}>Your profile</Heading>
           <Flex justify="between" align="start" gap="4" wrap="wrap">

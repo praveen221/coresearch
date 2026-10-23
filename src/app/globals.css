@@ -38,3 +38,8 @@ a { color: inherit; }
 button, summary, a { -webkit-tap-highlight-color: transparent; }
 a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--cr-ink); outline-offset: 4px; }
 ::selection { background: var(--cr-fill-light); }
+@media (pointer: coarse) {
+  .rt-SelectTrigger, .rt-BaseButton { min-height: 40px; }
+  .rt-TextFieldInput, .rt-TextAreaInput { font-size: 16px; }
+  summary { min-height: 40px; }
+}

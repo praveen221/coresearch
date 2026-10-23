@@ -160,7 +160,7 @@ export function TrackView({ initialTargets, target, initialDetail, initialResear
   const searches = detail.events.filter((event) => event.kind === 'search').length;
   const assessed = detail.links.filter((link) => link.verdict !== null).length;
   const last = detail.events.at(-1);
-  return <Shell current={target.id} initialTargets={initialTargets} section={`Workspace · ${targetName(target)}`} step="04 / Track" wide>
+  return <Shell current={target.id} initialTargets={initialTargets} section={targetName(target)} step="Research direction" wide>
     <Text as="p" size="2" color="gray">[ {track.kind === 'frontier' ? 'Frontier' : 'Track'} · {track.origin === 'student' ? 'your idea' : 'proposed by your agent'} ]</Text>
     <Heading as="h1" size="7" className={styles['title']}>{track.title}</Heading>
     <Text as="p" size="1" color="gray">Hypothesis</Text>
