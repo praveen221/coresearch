@@ -57,7 +57,7 @@ Use your agent's strongest reasoning setting for drafting, investigating, and re
 
 ## Sharing
 
-- Export: `npm run coresearch -- export` (JSON options on stdin: `pitches`, `notes`, `cv`) writes a folder in the workspace with a report anyone can open in a browser, the full database, and JSON. The CV is left out unless the student asks. `export:list` lists exports. The student can also export from the app's Share page.
+- Export: `npm run coresearch -- export` (JSON options on stdin: `pitches`, `notes`, `cv`, `texts`) writes a folder in the workspace with a report anyone can open in a browser, the full database, and JSON. The CV is left out unless the student asks. `texts` adds the saved text of every paper and page, so another computer can continue the research from the unzipped folder. `export:list` lists exports. The student can also export from the app's Share page.
 - Live access for a collaborator over Tailscale: the student runs `tailscale serve --bg <port>`, then `npm run coresearch -- stop` and `npm run coresearch -- start --share <machine>.<tailnet>.ts.net`, and sends the collaborator `https://<machine>.<tailnet>.ts.net`. Only people the machine is shared with can open it, and the computer must stay on.
 
 ## Server control

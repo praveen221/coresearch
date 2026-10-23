@@ -1,5 +1,5 @@
 import { chmodSync, copyFileSync, existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, isAbsolute, join, normalize } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { z } from 'zod';
 import { withDatabase } from './database.ts';
@@ -22,6 +22,7 @@ export const exportOptionsSchema = z.strictObject({
   pitches: z.boolean().default(true).describe('Include pitch drafts.'),
   notes: z.boolean().default(true).describe('Include the student’s notes from imported lists.'),
   cv: z.boolean().default(false).describe('Include the CV file itself, which carries contact details.'),
+  texts: z.boolean().default(false).describe('Include the saved text of every paper and page, so the research can continue on another computer.'),
 });
 export const exportFileSchema = z.strictObject({ name: z.string(), path: z.string(), bytes: z.number().int() });
 export const exportRecordSchema = z.strictObject({ folder: z.string(), createdAt: z.string(), files: z.array(exportFileSchema) });
@@ -228,13 +229,25 @@ report.html        Open in any web browser. A readable report of the application
 coresearch.sqlite  The full database. Open it with Coresearch, or with any SQLite viewer.
 data.json          The same research as JSON, for other tools.
 cv.pdf             The student’s CV, when included.
+targets/           The saved text of every paper and page, when included.
 
 Every quotation in the report is checked against the saved text of its source.
 
 To continue in Coresearch, put these files in an empty folder, move cv.pdf into a folder named profile inside it, and run
-setup with that folder. Paper PDFs and saved pages are not exported: download them again with papers:fetch, and save pages
-again with source:page.
+setup with that folder. Paper PDFs are not exported: download them again with papers:fetch. Without the saved texts, also
+save pages again with source:page.
 `;
+
+function copyTexts(workspace: string, absolute: string): void {
+  const rows = withDatabase(workspace, (db) => z.array(z.object({ kind: z.string(), file_path: z.string().nullable(), text_path: z.string().nullable() }))
+    .parse(db.prepare('SELECT kind, file_path, text_path FROM sources').all()));
+  const paths = rows.flatMap((row) => [row.text_path, row.kind === 'page' ? row.file_path : null]).flatMap((path) => path === null ? [] : [normalize(path)])
+    .filter((path) => !isAbsolute(path) && !path.startsWith('..') && path.startsWith('targets') && existsSync(join(workspace, path)));
+  for (const path of paths) {
+    mkdirSync(dirname(join(absolute, path)), { recursive: true, mode: 0o700 });
+    copyFileSync(join(workspace, path), join(absolute, path));
+  }
+}
 
 function sizeOf(workspace: string, folder: string, name: string): { name: string; path: string; bytes: number } {
   const path = join(folder, name);
@@ -260,6 +273,7 @@ export function createExport(workspace: string, input: unknown): ExportRecord {
     copy.close();
   }
   chmodSync(database, 0o600);
+  if (options.texts) copyTexts(workspace, absolute);
   const overview = getOverview(workspace);
   const kinds = listFitKinds(workspace);
   const profile = getProfile(workspace);
@@ -305,6 +319,7 @@ export function listExports(workspace: string): ExportRecord[] {
     .map((name) => {
       const folder = join('exports', name);
       return { folder, createdAt: statSync(join(workspace, folder)).mtime.toISOString(),
-        files: readdirSync(join(workspace, folder)).sort((a, b) => order(a) - order(b) || a.localeCompare(b)).map((file) => sizeOf(workspace, folder, file)) };
+        files: readdirSync(join(workspace, folder), { withFileTypes: true }).filter((file) => file.isFile()).map((file) => file.name)
+          .sort((a, b) => order(a) - order(b) || a.localeCompare(b)).map((file) => sizeOf(workspace, folder, file)) };
     });
 }

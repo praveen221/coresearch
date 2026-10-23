@@ -34,7 +34,7 @@ void test('the overview gives each professor a path, a stage, and a dated next s
     const file = join(workspace, 'paper.pdf');
     writeFileSync(file, pdf(['Users detected fewer manipulative tactics when the model concealed its intent.']));
     const source = savePaper(workspace, pitched.id, paper).source;
-    await attachPdf(workspace, source.id, file);
+    const attached = await attachPdf(workspace, source.id, file);
     const clip = addClip(workspace, { sourceId: source.id, kind: 'finding', quote: 'Users detected fewer manipulative tactics' });
     writeFileSync(file, pdf(['Annotated manipulation tactics in LLM responses.', 'Coded strategies participants used to resist.']));
     await attachCvBytes(workspace, new Uint8Array(readFileSync(file)));
@@ -52,8 +52,10 @@ void test('the overview gives each professor a path, a stage, and a dated next s
     assert.deepEqual([overview.steps[0]?.professor, overview.steps[0]?.date, overview.steps[0]?.text], ['Jane Doe', '2099-12-03',
       'Review your pitch, put it in your own words, and send it']);
     assert.equal(item?.next, 'Review the draft, put it in your own words, and send it by 3 Dec 2099.');
-    const record = createExport(workspace, { pitches: false });
+    const record = createExport(workspace, { pitches: false, texts: true });
     assert.deepEqual(record.files.map((entry) => entry.name), ['report.html', 'coresearch.sqlite', 'data.json', 'README.txt']);
+    assert.deepEqual([existsSync(join(workspace, record.folder, attached.textPath ?? '')), existsSync(join(workspace, record.folder, attached.filePath ?? ''))],
+      [true, false]);
     const html = readFileSync(join(workspace, record.folder, 'report.html'), 'utf8');
     assert.match(html, /Detecting persuasion &lt;in&gt; chat/);
     assert.match(html, /<mark>Users detected fewer manipulative tactics<\/mark>/);
@@ -64,7 +66,8 @@ void test('the overview gives each professor a path, a stage, and a dated next s
       assert.equal(copy.prepare('SELECT cv_text FROM profile').get()?.['cv_text'], null);
     } finally { copy.close(); }
     assert.equal(existsSync(join(workspace, record.folder, 'cv.pdf')), false);
-    assert.equal(listExports(workspace)[0]?.folder, record.folder);
+    assert.deepEqual([listExports(workspace)[0]?.folder, listExports(workspace)[0]?.files.map((entry) => entry.name)],
+      [record.folder, ['report.html', 'coresearch.sqlite', 'data.json', 'README.txt']]);
     assert.equal(proposal.pathway, 'proposal');
   } finally {
     rmSync(workspace, { recursive: true, force: true });

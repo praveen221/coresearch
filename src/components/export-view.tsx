@@ -40,11 +40,12 @@ export function ExportView({ initialTargets, initialExports }: Readonly<{ initia
   const [pitches, setPitches] = useState(true);
   const [notes, setNotes] = useState(true);
   const [cv, setCv] = useState(false);
+  const [texts, setTexts] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   function create(): void {
     startTransition(async () => {
-      const result = await makeExport({ pitches, notes, cv });
+      const result = await makeExport({ pitches, notes, cv, texts });
       if (!result.ok) { setMessage(result.errors.join(' ')); return; }
       setExports([result.value, ...exports]);
       setMessage('Export ready. Open the report below, or find the folder inside your Coresearch folder.');
@@ -61,6 +62,8 @@ export function ExportView({ initialTargets, initialExports }: Readonly<{ initia
         <Option label="Pitch drafts" detail="the emails Coresearch drafted for you" checked={pitches} onChange={setPitches} />
         <Option label="Notes from your list" detail="the columns of the spreadsheet you imported" checked={notes} onChange={setNotes} />
         <Option label="Your CV file" detail="it carries your email and phone number; leave it out unless you trust the reader" checked={cv} onChange={setCv} />
+        <Option label="Saved texts of papers and pages" detail="about 100 MB; lets another computer continue the research without downloading everything again"
+          checked={texts} onChange={setTexts} />
       </Flex>
       <Text as="p" size="2" color="gray" mt="3">Your profile, research directions, fit scores, and quoted evidence are always included. Anything you leave out is
         removed from the copied database too.</Text>
