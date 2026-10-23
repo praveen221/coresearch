@@ -3,7 +3,7 @@ import type { ReactNode, ReactElement } from 'react';
 import { IBM_Plex_Mono, Instrument_Sans, Newsreader } from 'next/font/google';
 import { cookies } from 'next/headers';
 import { Theme } from '@radix-ui/themes';
-import { appearanceCookie, parseAppearance } from '../lib/appearance.ts';
+import { appearanceCookie, parseAppearance, systemAppearance } from '../lib/appearance.ts';
 import '@radix-ui/themes/styles.css';
 import './globals.css';
 
@@ -18,9 +18,11 @@ export const metadata: Metadata = {
 export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>): Promise<ReactElement> {
   const appearance = parseAppearance((await cookies()).get(appearanceCookie)?.value);
   return (
-    <html lang="en" className={`${serif.variable} ${sans.variable} ${mono.variable}`}>
+    <html lang="en" className={`${serif.variable} ${sans.variable} ${mono.variable}${appearance === null ? '' : ` ${appearance}`}`}
+      suppressHydrationWarning>
+      <head><script dangerouslySetInnerHTML={{ __html: systemAppearance }} /></head>
       <body>
-        <Theme appearance={appearance} accentColor="indigo" grayColor="sand" radius="small" panelBackground="solid">
+        <Theme accentColor="indigo" grayColor="sand" radius="small" panelBackground="solid">
           {children}
         </Theme>
       </body>

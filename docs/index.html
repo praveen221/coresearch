@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Coresearch</title>
-<meta name="description" content="An open-source skill for your AI coding agent: professors ranked by the fit you choose, pitches grounded in your CV, and PhD research directions that survived an attempt to kill them. Every claim is a quoted cutout.">
+<meta name="description" content="An open-source skill for your AI agent: professors ranked by the fit you choose, with a checkable quote behind every claim.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&display=swap">
@@ -255,11 +255,11 @@ footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12
     </div>
     <div class="drawer" id="site-menu">
     <nav aria-label="Sections">
-      <a href="#top" data-section="top"><span class="dot" aria-hidden="true">●</span><span>Overview</span></a>
-      <a href="#cutouts" data-section="cutouts"><span class="dot" aria-hidden="true"></span><span>Cutouts</span></a>
-      <a href="#home" data-section="home"><span class="dot" aria-hidden="true"></span><span>Where you are</span></a>
-      <a href="#professors" data-section="professors"><span class="dot" aria-hidden="true"></span><span>Professors</span></a>
-      <a href="#loop" data-section="loop"><span class="dot" aria-hidden="true"></span><span>Research loop</span></a>
+      <a href="#top" data-section="top"><span class="dot" aria-hidden="true">●</span><span>Home</span></a>
+      <a href="#evidence" data-section="evidence"><span class="dot" aria-hidden="true"></span><span>Evidence</span></a>
+      <a href="#progress" data-section="progress"><span class="dot" aria-hidden="true"></span><span>Your progress</span></a>
+      <a href="#rank" data-section="rank"><span class="dot" aria-hidden="true"></span><span>Rank professors</span></a>
+      <a href="#how" data-section="how"><span class="dot" aria-hidden="true"></span><span>How it works</span></a>
       <a href="#install" data-section="install"><span class="dot" aria-hidden="true"></span><span>Install</span></a>
       <a href="#privacy" data-section="privacy"><span class="dot" aria-hidden="true"></span><span>Privacy</span></a>
     </nav>
@@ -272,26 +272,25 @@ footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12
 
   <div class="main">
     <header class="header">
-      <span data-current>Overview</span>
+      <span data-current>Home</span>
       <button class="toggle" type="button" data-theme-toggle>Night</button>
     </header>
 
     <main class="content">
       <section id="top" class="hero">
         <div class="hero-copy">
-          <p class="eyebrow">Coresearch · open source</p>
+          <p class="eyebrow">Open source · runs on your computer</p>
           <h1>Find the right professors, and a PhD direction you can <em>defend</em>.</h1>
-          <p class="lead">An open-source skill for your AI coding agent, with an app that runs on your computer. It reads professors’ papers, ranks them by the kinds of fit you choose, drafts pitches you send yourself, and tests research directions until only defensible ones survive. Every claim it makes is a quoted cutout you can check.</p>
+          <p class="lead">Your AI agent reads their papers, ranks them by the fit you choose, and backs every claim with a quote you can check.</p>
           <div class="actions">
             <a class="button solid" href="#install">Install</a>
             <a class="button" href="https://github.com/praveen221/coresearch" data-star>★ Star <span class="count" data-stars></span></a>
             <a class="button" href="https://github.com/praveen221/coresearch/blob/main/SKILL.md">Read SKILL.md</a>
           </div>
           <ul class="ticks">
-            <li>Professors ranked by topic, methods, scale, venues, skills, funding, alumni, or your own kinds of fit</li>
-            <li>Pitch drafts grounded in lines of your CV and the professor’s own papers</li>
-            <li>Research directions that survived an attempt to kill them, with a brief for each</li>
-            <li>What each professor looks for, deadlines, and rules on AI help, quoted from their pages</li>
+            <li>Professors ranked by fit, with proof</li>
+            <li>Pitches built from your CV and their papers</li>
+            <li>Research directions that survived an attack</li>
           </ul>
         </div>
         <div class="collage" aria-label="A cutout from Salvi et al. 2024 with its verdict">
@@ -311,34 +310,26 @@ footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12
         </div>
       </section>
 
-      <section id="cutouts" class="section">
-        <p class="eyebrow">The main thing</p>
-        <h2>Every claim is a cutout</h2>
-        <p class="lead">Agents can only quote words that exist in the saved paper; Coresearch finds the page itself. You see the quote highlighted in its sentence, the setup and the measured result side by side, and a link to the exact page.</p>
+      <section id="evidence" class="section">
+        <h2>Every claim comes with proof</h2>
+        <p class="lead">Quotes are checked against the saved paper and linked to the exact page.</p>
         <article class="cutout">
           <p class="where">[c1] Setup · <a href="https://arxiv.org/abs/2403.14380">Salvi et al. 2024</a>, p. 1 · <a href="https://arxiv.org/pdf/2403.14380v1#page=1">open PDF at page 1</a></p>
-          <p class="passage"><span class="context">…participants engage in short, multiple-round debates with a live opponent. </span><mark>Each participant is randomly assigned to one of four treatment conditions, corresponding to a two-by-two factorial design</mark><span class="context">: (1) Games are either played between two humans or between a human and an LLM; (2) Personalization might…</span></p>
-          <p class="note">Two by two: a human or GPT-4 opponent, with or without the opponent’s personal information.</p>
-        </article>
-        <article class="cutout">
-          <p class="where">[c2] Found · <a href="https://arxiv.org/abs/2403.14380">Salvi et al. 2024</a>, p. 1 · <a href="https://arxiv.org/pdf/2403.14380v1#page=1">open PDF at page 1</a></p>
-          <p class="passage"><span class="context">…granting one of the two players access to basic sociodemographic information about their opponent. We found that </span><mark>participants who debated GPT-4 with access to their personal information had 81.7% (p &lt; 0.01; N = 820 unique participants) higher odds of increased agreement with their opponents compared to participants who debated humans</mark><span class="context">. Without personalization, GPT-4 still outperforms…</span></p>
-          <p class="note">The headline result, with its numbers.</p>
+          <p class="passage"><span class="context">…participants engage in short, multiple-round debates with a live opponent. </span><mark>Each participant is randomly assigned to one of four treatment conditions, corresponding to a two-by-two factorial design</mark><span class="context">: (1) Games are either played between two humans or between a human and an LLM…</span></p>
+          <p class="note">A human or GPT-4 opponent, with or without personal data.</p>
         </article>
         <article class="cutout">
           <p class="where">[c3] Found · <a href="https://arxiv.org/abs/2403.14380">Salvi et al. 2024</a>, p. 1 · <a href="https://arxiv.org/pdf/2403.14380v1#page=1">open PDF at page 1</a></p>
-          <p class="passage"><span class="context">…higher odds of increased agreement with their opponents compared to participants who debated humans. </span><mark>Without personalization, GPT-4 still outperforms humans, but the effect is lower and statistically non-significant (p = 0.31).</mark><span class="context"> Overall, our results suggest that concerns around personalization are meaningful…</span></p>
-          <p class="note">The claim rests on personalization: without it, the advantage is not significant.</p>
+          <p class="passage"><span class="context">…compared to participants who debated humans. </span><mark>Without personalization, GPT-4 still outperforms humans, but the effect is lower and statistically non-significant (p = 0.31).</mark><span class="context"> Overall, our results suggest…</span></p>
+          <p class="note">Without personal data, the edge is not significant.</p>
         </article>
-
-        <h3>Proof for every kind of fit <span class="example">Example student</span></h3>
-        <p class="small gray">Each kind of fit shows its own proof: a line of your CV beside the sentence from their paper, the venues they publish in, listed from their papers in your library, and the people and grants their pages name, each with a link.</p>
+        <h3>Proof for every kind of fit <span class="example">Example</span></h3>
         <div class="facet">
-          <p class="facet-head">Methods <span class="dots" aria-hidden="true">●●●</span> 3 of 3 <span class="gray">— both run online experiments with hundreds of participants</span></p>
+          <p class="facet-head">Methods <span class="dots" aria-hidden="true">●●●</span> 3 of 3</p>
           <div class="pair-grid">
             <article class="cutout">
               <p class="where">Your CV, p. 1</p>
-              <p class="passage"><span class="context">…Research assistant, Human-AI Lab. </span><mark>Designed and ran a preregistered online experiment with 640 participants on chatbot advice</mark><span class="context">; analysed it in R…</span></p>
+              <p class="passage"><mark>Designed and ran a preregistered online experiment with 640 participants on chatbot advice</mark></p>
             </article>
             <article class="cutout">
               <p class="where">[c1] Setup · Salvi et al. 2024, p. 1</p>
@@ -347,71 +338,63 @@ footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12
           </div>
         </div>
         <div class="facet">
-          <p class="facet-head">Venues <span class="dots" aria-hidden="true">●●○</span> 2 of 3 <span class="gray">— listed from their papers in your library</span></p>
+          <p class="facet-head">Venues <span class="dots" aria-hidden="true">●●○</span> 2 of 3 <span class="gray">— from their papers in your library</span></p>
           <ul class="entries">
             <li><span class="entry-name">CHI Conference on Human Factors in Computing Systems</span><span class="entry-detail">6 papers · 2024–2026</span></li>
             <li><span class="entry-name">Proceedings of the ACM on Human-Computer Interaction</span><span class="entry-detail">5 papers · 2023–2026</span></li>
-            <li><span class="entry-name">International Journal of Human-Computer Studies</span><span class="entry-detail">3 papers · 2024–2026</span></li>
           </ul>
         </div>
         <div class="facet">
-          <p class="facet-head">Alumni <span class="dots" aria-hidden="true">●●○</span> 2 of 3 <span class="gray">— named on the lab’s people page, each with their own link</span></p>
+          <p class="facet-head">Alumni <span class="dots" aria-hidden="true">●●○</span> 2 of 3 <span class="gray">— each with their own link</span></p>
           <ul class="entries">
-            <li><span class="entry-name linked">Researcher A</span><span class="entry-detail">PhD 2023 · now a research scientist in industry</span></li>
-            <li><span class="entry-name linked">Researcher B</span><span class="entry-detail">PhD 2024 · now at a policy institute</span></li>
-            <li><span class="entry-name linked">Researcher C</span><span class="entry-detail">PhD 2025 · now an assistant professor</span></li>
+            <li><span class="entry-name linked">Researcher A</span><span class="entry-detail">PhD 2023 · research scientist in industry</span></li>
+            <li><span class="entry-name linked">Researcher B</span><span class="entry-detail">PhD 2024 · policy institute</span></li>
           </ul>
         </div>
       </section>
 
-      <section id="home" class="section">
-        <p class="eyebrow">The app</p>
-        <h2>See where you are</h2>
-        <p class="lead">The app opens on what to do next. UK and European programmes take a research proposal; elsewhere you write to the professor first. Each professor shows its own step tracker.</p>
+      <section id="progress" class="section">
+        <h2>Always know the next step</h2>
+        <p class="lead">The app opens on what to do next, for every professor.</p>
         <div class="card">
           <div class="head"><strong>Research proposal · fit rank 1</strong><span class="small gray">Closes 2 Dec · 40 days left</span></div>
           <ol class="stages">
             <li class="done"><span class="g" aria-hidden="true">✓</span> Professor saved</li>
             <li class="done"><span class="g" aria-hidden="true">✓</span> Their work read <span class="gray">· 212 papers</span></li>
-            <li class="doing"><span class="g" aria-hidden="true">◐</span> Directions tested <span class="gray">· 24 tested, 9 strong</span></li>
-            <li class="done"><span class="g" aria-hidden="true">✓</span> Shortlist ready <span class="gray">· 5 clear the bar</span></li>
+            <li class="doing"><span class="g" aria-hidden="true">◐</span> Directions tested <span class="gray">· 9 strong</span></li>
             <li class="todo"><span class="g" aria-hidden="true">○</span> You write the proposal</li>
-            <li class="todo"><span class="g" aria-hidden="true">○</span> Apply <span class="gray">· by 2 Dec</span></li>
           </ol>
-          <p class="small"><strong>Next:</strong> Read your shortlist, choose a direction, and write the proposal in your own words.</p>
         </div>
         <div class="card">
           <div class="head"><strong>What to do next <span class="example">Example</span></strong></div>
           <ol class="steps">
-            <li><span class="date">3 Nov</span><span><a href="#home">Professor B</a> · Review your pitch, put it in your own words, and send it</span></li>
-            <li><span class="date">10 Nov</span><span><a href="#home">Professor C</a> · Write your own email: their programme bans AI-drafted material</span></li>
-            <li><span class="date">2 Dec</span><span><a href="#home">Professor A</a> · Choose a direction from your shortlist and write your proposal</span></li>
+            <li><span class="date">3 Nov</span><span><a href="#progress">Professor B</a> · Review your pitch and send it</span></li>
+            <li><span class="date">10 Nov</span><span><a href="#progress">Professor C</a> · Write your own email: AI drafts are banned</span></li>
+            <li><span class="date">2 Dec</span><span><a href="#progress">Professor A</a> · Choose a direction and write your proposal</span></li>
           </ol>
         </div>
       </section>
 
-      <section id="professors" class="section">
-        <p class="eyebrow">Fit</p>
-        <h2>Professors ranked by the fit you choose</h2>
-        <p class="lead">Import your list from a Google Sheet. Each kind of fit is scored 0 to 3 from quoted evidence; you decide how much each counts, and add your own, such as compute, lab size, or advising style. Open a professor to see what they look for, their deadlines, rules on AI help, and shared contacts, each with its cutout.</p>
-        <p class="weights">What counts in your rank · <span class="select">Essential</span> Topic · <span class="select">Counts</span> Methods · <span class="select">Important</span> Funding · <span class="select">Ignore</span> Alumni</p>
+      <section id="rank" class="section">
+        <h2>Rank professors by what matters to you</h2>
+        <p class="lead">Topic, methods, scale, venues, skills, funding, alumni, or your own. Every score shows its proof.</p>
+        <p class="weights"><span class="select">Essential</span> Topic · <span class="select">Counts</span> Methods · <span class="select">Important</span> Funding · <span class="select">Ignore</span> Alumni</p>
         <div class="scroll">
           <table>
-            <thead><tr><th>#</th><th>Professor</th><th>Fit</th><th>Topic</th><th>Methods</th><th>Scale</th><th>Venues</th><th>Skills</th><th>Funding</th><th>Next</th></tr></thead>
+            <thead><tr><th>#</th><th>Professor</th><th>Fit</th><th>Topic</th><th>Methods</th><th>Scale</th><th>Venues</th><th>Skills</th><th>Funding</th></tr></thead>
             <tbody>
-              <tr><td>1</td><td>▸ Professor A<br><span class="tiny gray">UK · research proposal</span></td><td><strong>17/21</strong></td><td class="n">3</td><td class="n">3</td><td class="n">3</td><td class="n">3</td><td class="n">2</td><td class="n">3</td><td>Research proposal</td></tr>
-              <tr><td>2</td><td>▸ Professor B<br><span class="tiny gray">US · pitch</span></td><td><strong>16/21</strong></td><td class="n">3</td><td class="n">2</td><td class="n">1</td><td class="n">3</td><td class="n">1</td><td class="n">3</td><td>Draft ready for you</td></tr>
-              <tr><td>3</td><td>▸ Professor C<br><span class="tiny gray">US · pitch</span></td><td><strong>14/21</strong></td><td class="n">2</td><td class="n">2</td><td class="n">2</td><td class="n">3</td><td class="n">2</td><td class="n">–</td><td>Write it yourself</td></tr>
+              <tr><td>1</td><td>▸ Professor A<br><span class="tiny gray">UK · proposal</span></td><td><strong>17/21</strong></td><td class="n">3</td><td class="n">3</td><td class="n">3</td><td class="n">3</td><td class="n">2</td><td class="n">3</td></tr>
+              <tr><td>2</td><td>▸ Professor B<br><span class="tiny gray">US · pitch</span></td><td><strong>16/21</strong></td><td class="n">3</td><td class="n">2</td><td class="n">1</td><td class="n">3</td><td class="n">1</td><td class="n">3</td></tr>
+              <tr><td>3</td><td>▸ Professor C<br><span class="tiny gray">US · pitch</span></td><td><strong>14/21</strong></td><td class="n">2</td><td class="n">2</td><td class="n">2</td><td class="n">3</td><td class="n">2</td><td class="n">–</td></tr>
             </tbody>
           </table>
         </div>
-        <p class="tiny gray">Example rows. “–” means checked and not found.</p>
+        <p class="tiny gray">Example rows.</p>
       </section>
 
-      <section id="loop" class="section">
-        <p class="eyebrow">How it works</p>
-        <h2>Research that tries to kill itself</h2>
-        <p class="lead">For proposal programmes, Coresearch runs batches of guesses you approve. Separate agents draft, rank, investigate, and review, and each batch learns from the last.</p>
+      <section id="how" class="section">
+        <h2>Ideas that survive an attack</h2>
+        <p class="lead">Separate agents draft, attack, and review each idea. You approve every batch.</p>
         <div class="chart">
           <ol class="column">
             <li class="you">You: profile · CV · professors</li>
@@ -419,94 +402,80 @@ footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12
           </ol>
           <div class="lanes">
             <div class="lane" aria-label="Research proposal">
-              <p>UK · Europe → research proposal</p>
+              <p>UK · Europe → proposal</p>
               <ol class="column">
                 <li class="node">Read their papers</li>
-                <li class="node">Collect seeds</li>
                 <li class="node">Draft guesses</li>
-                <li class="node">Critic ranks</li>
+                <li class="node">Critic ranks blind</li>
                 <li class="node">Try to kill each</li>
                 <li class="node">Independent review</li>
-                <li class="node">Best directions</li>
                 <li class="you">You write the proposal</li>
               </ol>
-              <p class="loop">↺ lessons improve the next batch</p>
+              <p class="loop">↺ each batch learns from the last</p>
             </div>
             <div class="lane" aria-label="Pitch">
               <p>US · elsewhere → pitch</p>
               <ol class="column">
                 <li class="node">What they look for</li>
-                <li class="node">Fit with evidence</li>
+                <li class="node">Fit with proof</li>
                 <li class="node">Draft a pitch</li>
                 <li class="you">You edit and send</li>
               </ol>
             </div>
           </div>
-          <ol class="column"><li class="you">You steer: approve · drop · edit · weigh</li></ol>
-          <p class="tiny gray">Paper: agents · lavender: you</p>
         </div>
         <ul class="rules">
-          <li><strong>Stated before testing</strong>Every guess fixes its research questions, what would kill it, and its predicted chance of surviving.</li>
+          <li><strong>Stated first</strong>Questions, kill criteria, and odds, before any search.</li>
           <li><strong>Ranked blind</strong>A critic ranks drafts without knowing who wrote them.</li>
-          <li><strong>Read in full</strong>Investigators search neighbouring fields and preprints, and record what they read and how deeply.</li>
-          <li><strong>Reviewed independently</strong>A fresh agent scores novelty, depth, lab fit, your fit, and feasibility; a direction clears the bar only at 2 of 3 on all five.</li>
+          <li><strong>Read in full</strong>Investigators read the closest work and log how deeply.</li>
+          <li><strong>Reviewed fresh</strong>A new agent scores five criteria; it passes only at 2 of 3 on all.</li>
         </ul>
       </section>
 
       <section id="install" class="section">
-        <p class="eyebrow">Ten minutes</p>
-        <h2>Install</h2>
-        <p class="lead">You need Node.js 24.14 or newer (check with <code>node -v</code>), Git, and an AI agent that can run commands on your computer: Claude Code in the terminal, the desktop app, or an IDE, or Codex, Cursor, and similar. Browser-only chats cannot run it.</p>
+        <h2>Install in ten minutes</h2>
+        <p class="lead">Needs Node.js 24, Git, and an agent that runs commands: Claude Code, Codex, or Cursor.</p>
         <ol class="install">
           <li>
             <div>
               <h3>Add the skill</h3>
               <p class="small">Claude Code: paste this into a session.</p>
               <div class="code"><pre id="claude">Install the Coresearch skill from https://github.com/praveen221/coresearch into ~/.claude/skills/coresearch, then set it up.</pre><button class="button" type="button" data-copy="claude">Copy</button></div>
-              <p class="small">Codex, Cursor, and other agents: clone it, then tell your agent “Read ~/coresearch/SKILL.md and set up Coresearch.”</p>
+              <p class="small">Other agents: clone it, then say “Read ~/coresearch/SKILL.md and set up Coresearch.”</p>
               <div class="code"><pre id="clone">git clone https://github.com/praveen221/coresearch ~/coresearch</pre><button class="button" type="button" data-copy="clone">Copy</button></div>
             </div>
           </li>
           <li>
             <div>
               <h3>Choose your folder</h3>
-              <p class="small">Your agent installs dependencies (about a minute), asks where to keep your research (any folder, such as <code>~/Documents/Coresearch</code>), builds the app (one to two minutes), and opens it at <code>http://127.0.0.1:3780</code>.</p>
+              <p class="small">Your agent asks where to keep your research, then opens the app at <code>127.0.0.1:3780</code>.</p>
             </div>
           </li>
           <li>
             <div>
-              <h3>Start with yourself</h3>
-              <p class="small">Tell your agent about yourself and upload your CV on the profile page. Add professors by name, or paste a Google Sheet link shared as “Anyone with the link can view”. Then ask it to rank them, draft pitches, or start testing research directions with a professor.</p>
-            </div>
-          </li>
-          <li>
-            <div>
-              <h3>Come back any day</h3>
-              <p class="small">Open your agent in your research folder and say what you want; the app shows progress live. If the app is not running, say “start Coresearch”. To update, say “update Coresearch”; your research is never changed. To remove it, delete the skill folder; your research folder stays yours.</p>
+              <h3>Tell it about you</h3>
+              <p class="small">Upload your CV, add professors or a Google Sheet, and ask it to rank them.</p>
             </div>
           </li>
         </ol>
         <details>
-          <summary class="small">Costs, reasoning settings, and troubleshooting</summary>
+          <summary class="small">Cost and troubleshooting</summary>
           <dl>
-            <dt>Cost</dt><dd>Each research guess takes about half a million tokens and 40 minutes of agent time; a batch of 20 is 10 to 15 million tokens. Batches start only when you approve them.</dd>
-            <dt>Reasoning</dt><dd>Use your agent’s strongest setting for drafting, investigating, and reviewing; lighter settings are fine for your profile, lists, and pitch edits.</dd>
-            <dt>Errors about node:sqlite</dt><dd>Upgrade to Node.js 24.14 or newer.</dd>
-            <dt>Port already in use</dt><dd>Say “start Coresearch on port 3790”.</dd>
-            <dt>Paper lookups stop for the day</dt><dd>OpenAlex has a daily allowance; set <code>OPENALEX_API_KEY</code> to a free key from openalex.org.</dd>
-            <dt>Sharing with a collaborator</dt><dd>Export a report anyone can open from the Share page, or give live access over Tailscale (see the <a href="https://github.com/praveen221/coresearch#share">README</a>).</dd>
+            <dt>Cost</dt><dd>About half a million tokens and 40 minutes per research idea. Batches start only when you approve.</dd>
+            <dt>Reasoning</dt><dd>Strongest setting for research; lighter for edits.</dd>
+            <dt>node:sqlite errors</dt><dd>Use Node.js 24.14 or a later 24.x release.</dd>
+            <dt>Port in use</dt><dd>Say “start Coresearch on port 3790”.</dd>
+            <dt>Sharing</dt><dd>Export from the Share page, or share it live over Tailscale (<a href="https://github.com/praveen221/coresearch#share">README</a>).</dd>
           </dl>
         </details>
       </section>
 
       <section id="privacy" class="section">
-        <p class="eyebrow">Yours</p>
-        <h2>Privacy</h2>
+        <h2>Yours alone</h2>
         <ul class="ticks">
-          <li>Your CV and research stay in a folder you choose, on your computer.</li>
-          <li>No account, no server, no tracking in the app.</li>
-          <li>It never contacts anyone; you send every email and write the proposal.</li>
-          <li>It checks each programme’s rules on AI help and holds drafts where AI help is banned.</li>
+          <li>Your data stays in a folder on your computer.</li>
+          <li>No account, server, or tracking.</li>
+          <li>It never contacts anyone; you send every email.</li>
         </ul>
         <footer>
           <a href="https://github.com/praveen221/coresearch" data-star>★ Star on GitHub <span class="count" data-stars></span></a>
@@ -526,10 +495,14 @@ footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12
   try { const saved = localStorage.getItem('coresearch-theme'); if (saved === 'dark' || saved === 'light') root.dataset.theme = saved; } catch (error) { }
   label();
   toggles.forEach((toggle) => toggle.addEventListener('click', () => {
-    root.dataset.theme = dark() ? 'light' : 'dark';
-    try { localStorage.setItem('coresearch-theme', root.dataset.theme); } catch (error) { }
+    const next = dark() ? 'light' : 'dark';
+    const system = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    if (next === system) delete root.dataset.theme;
+    else root.dataset.theme = next;
+    try { if (next === system) localStorage.removeItem('coresearch-theme'); else localStorage.setItem('coresearch-theme', next); } catch (error) { }
     label();
   }));
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', label);
   const sidebar = document.querySelector('[data-sidebar]');
   const burger = document.querySelector('[data-burger]');
   const menu = (open) => {

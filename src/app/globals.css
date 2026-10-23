@@ -26,7 +26,7 @@
   --cr-grain: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .36 0 0 0 0 .27 0 0 0 0 .15 0 0 0 .08 0'/></filter><rect width='180' height='180' filter='url(%23g)'/></svg>");
   --cr-tear: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='8' viewBox='0 0 24 8'><path d='M0 0H24V2.6L22 5.2 19.6 3 17.4 6.8 15 3.6 12.4 7.4 10 4.2 7.6 6.4 5.2 3.2 2.8 6 0 3.4Z' fill='%23fbf7ef'/></svg>");
 }
-.radix-themes.dark {
+:root.dark {
   --cr-canvas: #16151a;
   --cr-paper: #22202a;
   --cr-soft: #1c1b21;

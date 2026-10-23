@@ -281,3 +281,4 @@
 .alertMark { display: inline-grid; place-items: center; width: 1.3em; height: 1.3em; margin-right: 4px; border-radius: 50%; background: var(--cr-coral);
   color: var(--cr-paper); font-family: var(--cr-mono); font-size: .8em; font-weight: 600; line-height: 1; vertical-align: .08em; }
 .caseLabel { font-family: var(--cr-mono); font-size: 11px; font-weight: 500; letter-spacing: .08em; }
+:global(.dark) .whenLight, :global(.light) .whenDark { display: none; }

@@ -29,7 +29,8 @@ Paper and ink. Reading research should feel like a desk of clippings: cream pape
 ## Rules
 
 - Clean and minimal: one accent per element, generous space, no dashboards or illustration inside the app. No in-app chat; profile fields edit in place and updates from chat appear live.
-- Night mode keeps every role on dark paper; check contrast (AA) in both themes.
+- The theme follows the system until the student picks Night or Day; picking the system’s own theme follows it again. Night keeps every role on dark paper; check contrast (AA) in both themes.
+- The site says what matters in as few words as possible: a heading and one line per section.
 - One visible focus ring per control; Radix components keep their own. Semantic headings; reduced motion respected.
 - Phones: one column, tables become cards, 40px touch targets, long entries wrap, no horizontal page scroll.
 - Unknown fields say “Not provided.” Funding stays unknown until stated. Never show sample data as a real profile.
