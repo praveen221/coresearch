@@ -32,7 +32,7 @@ export function Shell({ current, initialTargets, section, step, wide = false, ch
   const [menu, setMenu] = useState(false);
   function link(href: string, selected: boolean, label: string, detail: string | null = null): ReactElement {
     return <a href={href} aria-current={selected ? 'page' : undefined} className={selected ? styles['selected'] : styles['navLink']}>
-      <span aria-hidden="true" className={styles['navMarker']}>{selected ? '[·]' : '[ ]'}</span>
+      <span aria-hidden="true" className={styles['navMarker']}>{selected ? '●' : ''}</span>
       <span className={styles['navLabel']}>{label}{detail === null ? null : <Text size="1" color="gray">{detail}</Text>}</span>
     </a>;
   }
@@ -45,7 +45,7 @@ export function Shell({ current, initialTargets, section, step, wide = false, ch
           <span className={styles['mobileTools']}>
             <AppearanceToggle />
             <button type="button" className={styles['menuButton']} aria-expanded={menu} aria-controls="main-navigation"
-              onClick={() => { setMenu(!menu); }}>{menu ? '[ close ]' : '[ menu ]'}</button>
+              onClick={() => { setMenu(!menu); }}>{menu ? 'Close' : 'Menu'}</button>
           </span>
         </div>
         <nav id="main-navigation" aria-label="Main navigation" className={menu ? styles['navigationOpen'] : styles['navigation']}>

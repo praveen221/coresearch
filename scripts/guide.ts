@@ -46,7 +46,7 @@ export function guide(): { rules: string[]; steps: GuideStep[] } {
         `Ask the student what matters to them in a supervisor and lab, then set the kinds of fit with ${run('fit:configure')}. ${run('fit:kinds')} shows the current list; it starts with topic, methods, scale, venues, skills, funding, and alumni, and a student may add others, such as compute, lab size, theory or systems, location, or advising style.`,
         'Rank every professor, the student’s final list first, on each kind. Read across their recent papers of different kinds (studies, systems, surveys, datasets) and their most-cited works.',
         'For funding, read the acknowledgements of their recent papers and public award records for grants that cover the student’s start; for alumni, their lab’s people page. Cut out these lab facts (kind "fact").',
-        `Save the scores with ${run('fit:score')}. A score of 2 or 3 needs a cutout from their own work and, for kinds about the student, an exact CV quote. ${run('fit:schema')} gives exact inputs.`,
+        `Save the scores with ${run('fit:score')}. A score of 2 or 3 needs a cutout from their own work and, for kinds about the student, an exact CV quote. Every claim gets its own evidence: the exact sentence from their work beside the CV words it meets, and the people, grants, or venues a cutout names as entries with their own links. ${run('fit:schema')} gives exact inputs.`,
         'Cut out everything their pages say about the candidates they want, who gets in, and their advice to applicants (kind "criteria"), so the student never has to reread those pages.',
       ] },
       { step: 'Share', do: [

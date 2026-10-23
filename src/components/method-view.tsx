@@ -30,7 +30,7 @@ export function MethodView({ initialTargets, research }: Readonly<{ initialTarge
   const total = (key: 'guesses' | 'clearedBar'): number | undefined => research === null ? undefined
     : metrics.reduce((sum, item) => sum + item[key], 0);
   return <Shell current="method" initialTargets={initialTargets} section="How it works" step="How it works" wide>
-    <Text as="p" size="2" color="gray">[ How it works ]</Text>
+    <Text as="p" size="1" className={styles['eyebrow']}>How it works</Text>
     <Heading as="h1" size="7" className={styles['title']}>How it works</Heading>
     <div className={styles['flowChart']}>
       <ol className={styles['flowColumn']}>

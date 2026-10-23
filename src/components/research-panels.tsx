@@ -9,8 +9,11 @@ import type { Clip, Research, Source, SourceStatus, Track, TrackStatus } from '.
 import styles from './ui.module.css';
 
 export const statusMarkers: Record<SourceStatus, string> = {
-  unread: '[ ]', abstract: '[a]', partial: '[p]', full: '[f]', inaccessible: '[x]',
+  unread: '○', abstract: '◔', partial: '◑', full: '●', inaccessible: '⊘',
 };
+export function Origin({ track }: Readonly<{ track: Track }>): ReactElement {
+  return <span className={track.origin === 'student' ? styles['tagYou'] : styles['tag']}>{track.origin === 'student' ? 'your idea' : 'agent guess'}</span>;
+}
 export const statusLabels: Record<SourceStatus, string> = {
   unread: 'not read', abstract: 'abstract read', partial: 'partly read', full: 'fully read', inaccessible: 'inaccessible',
 };
@@ -76,7 +79,7 @@ export function Shortlist({ research }: Readonly<{ research: Research }>): React
       const fit = briefItems(brief, 'Fit').find((item) => item.startsWith('Student:'))?.replace(/^Student:\s*/, '');
       return <li key={track.id} className={styles['shortlistItem']}>
         <Text as="p" weight="medium"><a href={trackHref(track)}>{track.title}</a></Text>
-        <Text as="p" size="1" color="gray">[{track.origin}] {track.origin === 'student' ? 'your idea' : 'agent guess'}
+        <Text as="p" size="1" color="gray"><Origin track={track} />
           {track.score === null ? ' · not yet scored'
             : ` · reviewer score ${String(track.score.total)}/15 · ${clearsBar(track.score) ? 'clears the bar' : 'below the bar'}`}</Text>
         <Text as="p" size="2" mt="1"><RefText text={question} base={trackHref(track)} /></Text>
@@ -97,7 +100,9 @@ export function Cutout({ clip, source, compact = false }: Readonly<{ clip: Clip;
   return <article id={`clip-${String(clip.id)}`} className={styles['cutout']}>
     <Text as="p" size="1" color="gray">[c{clip.id}] {kindLabels[clip.kind]} · {source === undefined ? where : <a href={sourceHref(source)}>{where}</a>}
       {source === undefined || source.filePath === null ? null : <> · <a href={fileUrl(source.filePath, clip.page)} target="_blank" rel="noreferrer">
-        {source.kind === 'page' ? 'snapshot' : `open PDF${clip.page === null ? '' : ` at page ${String(clip.page)}`}`}</a></>}
+        {source.kind === 'page' ? 'saved copy' : `open PDF${clip.page === null ? '' : ` at page ${String(clip.page)}`}`}</a></>}
+      {source?.url == null || !/^https?:\/\//.test(source.url) ? null : <> · <a href={source.url} target="_blank" rel="noreferrer">
+        {source.kind === 'page' ? 'live page' : 'publisher page'}</a></>}
     </Text>
     <p className={tabular ? styles['tablePassage'] : styles['passage']}>
       <span className={styles['context']}>…{context(clip.before.slice(-span))}{/\s$/.test(clip.before) ? '' : ' '}</span><mark>{clip.quote}</mark><span className={styles['context']}>{/^\s/.test(clip.after) ? '' : ' '}{context(clip.after.slice(0, span))}…</span>
@@ -123,7 +128,7 @@ function LimitControl({ research }: Readonly<{ research: Research }>): ReactElem
       </Select.Root>
       <Text size="1" color="gray">{String(research.running)} running</Text>
     </Flex>
-    {error === null ? null : <Text as="p" size="1" role="alert">[!] {error}</Text>}
+    {error === null ? null : <Text as="p" size="1" role="alert"><span className={styles['alertMark']} aria-hidden="true">!</span> {error}</Text>}
   </div>;
 }
 
@@ -140,7 +145,7 @@ export function TrackList({ research }: Readonly<{ research: Research }>): React
   function item(track: Track): ReactElement {
     return <li key={track.id} className={styles['trackItem']}>
       <a href={trackHref(track)}>{track.title}</a>
-      <Text as="p" size="1" color="gray">[{track.origin}]{track.kind === 'frontier' ? ' frontier' : ''} {trackStatusLabels[track.status]}</Text>
+      <Text as="p" size="1" color="gray"><Origin track={track} />{track.kind === 'frontier' ? ' frontier' : ''} {trackStatusLabels[track.status]}</Text>
     </li>;
   }
   return <aside aria-labelledby="tracks-heading" className={styles['tracks']}>
@@ -170,8 +175,12 @@ function Upload({ source }: Readonly<{ source: Source }>): ReactElement {
   }}>
     <input type="hidden" name="sourceId" value={source.id} />
     <Flex gap="2" mt="2" align="center" wrap="wrap">
-      <input type="file" name="file" accept="application/pdf" aria-label={`PDF of ${source.title}`} className={styles['file']} />
-      <Button type="submit" size="1" variant="soft" color="gray" disabled={pending}>{pending ? 'Saving…' : 'Upload PDF'}</Button>
+      <Button asChild size="1" variant="soft" className={styles['uploadButton']}>
+        <label>{pending ? 'Saving…' : 'Upload PDF'}
+          <input type="file" name="file" accept="application/pdf" aria-label={`PDF of ${source.title}`} className={styles['srOnly']} disabled={pending}
+            onChange={(event) => { event.currentTarget.form?.requestSubmit(); }} />
+        </label>
+      </Button>
     </Flex>
     {message === null ? null : <Text as="p" size="1" role="status">{message}</Text>}
   </form>;
@@ -258,7 +267,7 @@ export function ResearchStatus({ research }: Readonly<{ research: Research }>): 
     {tracks.length === 0 ? null : <table className={styles['table']}>
       <thead><tr><th scope="col">Direction</th><th scope="col">Status</th><th scope="col">Outcome</th></tr></thead>
       <tbody>{tracks.map((track) => <tr key={track.id}>
-        <td><a href={trackHref(track)}>{track.title}</a><Text as="div" size="1" color="gray">[{track.origin}]{track.kind === 'frontier' ? ' frontier' : ''}</Text></td>
+        <td><a href={trackHref(track)}>{track.title}</a><Text as="div" size="1" color="gray"><Origin track={track} />{track.kind === 'frontier' ? ' frontier' : ''}</Text></td>
         <td>{trackStatusLabels[track.status]}{track.brief === null ? '' : ' · brief'}{track.score === null ? '' : ` · ${String(track.score.total)}/15`}</td>
         <td><Text size="1"><RefText text={outcome(track).slice(0, 220)} base={trackHref(track)} /></Text></td>
       </tr>)}</tbody>

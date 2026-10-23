@@ -158,8 +158,22 @@ void test('a pitch connects quoted CV evidence with the professor’s own cutout
     assert.deepEqual(fitTotal(getTarget(professor.id, workspace).fit, listFitKinds(workspace)), { score: 1, max: 3, checked: 1, counted: 1 });
     configureFitKinds(workspace, { kinds: defaultFitKinds });
     assert.deepEqual(targetOutreach(workspace, professor.id).clips.map((item) => item.id), [clip.id]);
+    const person = { name: 'Ann Collaborator', detail: 'PhD 2024; now a research scientist', url: 'https://example.org/ann' };
+    const alumni = { score: 2, finding: 'Alumni went to industry.', reason: 'She wants an industry path.',
+      evidence: [{ cvQuote: null, clipId: clip.id, entries: [person], note: 'The people page.' }] };
+    assert.throws(() => scoreFit(workspace, { ...fit, facets: { alumni: { ...alumni, evidence: [{ cvQuote: 'annotated manipulation tactics in LLM responses',
+      clipId: null, entries: [person], note: 'x' }] } } }), /Back named entries with the cutout that names them/);
+    assert.throws(() => scoreFit(workspace, { ...fit, facets: { alumni: { ...alumni, evidence: [{ cvQuote: null, clipId: clip.id,
+      entries: [{ ...person, url: 'javascript:void(0)' }], note: 'x' }] } } }));
+    assert.deepEqual(scoreFit(workspace, { ...fit, facets: { alumni } })['alumni']?.evidence[0]?.entries, [person]);
+    assert.deepEqual(getFit(workspace, professor.id)['topic']?.evidence[0]?.entries, []);
+    savePaper(workspace, professor.id, { ...paper, openalexId: 'W12', doi: '10.1000/preprint', title: 'A preprint', year: 2025,
+      venue: 'arXiv (Cornell University)', authors: ['Jane Doe'], landingUrl: 'https://arxiv.org/abs/2501.00001' });
+    assert.deepEqual(targetOutreach(workspace, professor.id).venues.map((venue) => [venue.venue, venue.preprint, venue.papers.map((item) => item.title)]),
+      [['Example Venue', false, ['Exposing manipulation in conversation']], ['arXiv (Cornell University)', true, ['A preprint']]]);
     const rows = listOutreach(workspace);
     assert.deepEqual(rows.map((row) => [row.professor, row.pathway, row.pitch, row.hold, row.openings, row.deadline, row.contacts.length, row.fit]),
-      [['Jane Doe', 'pitch', 'sent', null, 'yes', '2026-12-01', 1, { compute: 1, topic: 3, funding: 1 }], ['John Roe', 'proposal', null, null, 'unknown', null, 0, {}]]);
+      [['Jane Doe', 'pitch', 'sent', null, 'yes', '2026-12-01', 1, { compute: 1, topic: 3, funding: 1, alumni: 2 }],
+        ['John Roe', 'proposal', null, null, 'unknown', null, 0, {}]]);
   });
 });

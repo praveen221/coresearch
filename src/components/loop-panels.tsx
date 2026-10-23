@@ -102,7 +102,7 @@ function NextBatch({ research, targetId, number }: Readonly<{ research: Research
     <Text as="p" size="1" color="gray" mt="2">Expect roughly {String(Math.round(Number(size) * 0.6 * 10) / 10)} million tokens and {String(Math.ceil(Number(size)
       * 40 / 60 / 4))} to {String(Math.ceil(Number(size) * 40 / 60))} hours of agent time: about half a million tokens and 40 minutes per guess, four at a
       time or one by one.</Text>
-    {error === null ? null : <Text as="p" size="1" role="alert">[!] {error}</Text>}
+    {error === null ? null : <Text as="p" size="1" role="alert"><span className={styles['alertMark']} aria-hidden="true">!</span> {error}</Text>}
   </article>;
 }
 

@@ -54,7 +54,7 @@ function recommendedKinds(target: Target): LinkKind[] {
 
 export function NewTargetView({ initialTargets }: Readonly<{ initialTargets: Target[] }>): ReactElement {
   return <Shell current="new" initialTargets={initialTargets} section="Professors" step="Add a professor">
-    <Text as="p" size="2" color="gray">[ New professor ]</Text>
+    <Text as="p" size="1" className={styles['eyebrow']}>New professor</Text>
     <Heading as="h1" size="7" className={styles['title']}>Add a professor</Heading>
     <Text as="p" color="gray">Add one professor you want to work with. UK and European programmes become research proposals; others become pitches.
       You can also tell your agent instead, or import a whole list on the Professors page.</Text>
@@ -95,7 +95,7 @@ export function TargetView({ initialTargets, initialResearch, id, initialOutreac
   const tabs = pitchPath ? pitchTabs : proposalTabs;
   return <Shell current={id} initialTargets={initialTargets} section={target?.pathway === 'pitch' ? 'Professors' : 'Research proposals'}
     step={target?.pathway === 'pitch' ? 'Pitch' : 'Research proposal'} wide>
-    <Text as="p" size="2" color="gray">[ {target?.pathway === 'pitch' ? 'Pitch' : 'Research proposal'} ]</Text>
+    <Text as="p" size="1" className={styles['eyebrow']}>{target?.pathway === 'pitch' ? 'Pitch' : 'Research proposal'}</Text>
     <Heading as="h1" size="7" className={styles['title']}>{target === null ? 'Professor' : targetName(target)}</Heading>
     <StatusBanner overview={overview} id={id} />
     <div className={pitchPath ? undefined : styles['targetLayout']}><div className={pitchPath ? undefined : styles['targetMain']}>
@@ -142,7 +142,7 @@ export function TargetView({ initialTargets, initialResearch, id, initialOutreac
             </Field>)}
         </dl>}
         {recommendedKinds(target).filter((kind) => !target.links.some((link) => link.kind === kind)).map((kind) =>
-          <Text key={kind} as="p" size="2" color="gray" mt="2">[ ] {linkLabels[kind]} not added yet</Text>)}
+          <Text key={kind} as="p" size="2" color="gray" mt="2">○ {linkLabels[kind]} not added yet</Text>)}
       </section>
       <section aria-labelledby="remove-heading" className={styles['section']}>
         <Heading as="h2" size="3" id="remove-heading">Remove</Heading>
@@ -153,7 +153,7 @@ export function TargetView({ initialTargets, initialResearch, id, initialOutreac
             <Button variant="soft" color="gray" onClick={() => { setConfirmRemove(false); }} disabled={pending}>Keep it</Button>
           </> : <Button variant="soft" color="gray" onClick={() => { setConfirmRemove(true); }}>Remove professor…</Button>}
         </Flex>
-        {removeError === null ? null : <Text as="p" size="2" mt="2" role="alert">[!] {removeError}</Text>}
+        {removeError === null ? null : <Text as="p" size="2" mt="2" role="alert"><span className={styles['alertMark']} aria-hidden="true">!</span> {removeError}</Text>}
       </section>
     </>}
       </Tabs.Content>

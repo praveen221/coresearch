@@ -24,7 +24,7 @@ export function SourceView({ initialTargets, target, initialResearch, id }: Read
   const clips = research.clips.filter((clip) => clip.sourceId === source.id);
   const tracks = new Map(research.tracks.map((track) => [track.id, track]));
   return <Shell current={target.id} initialTargets={initialTargets} section={targetName(target)} step="Paper">
-    <Text as="p" size="2" color="gray">[ {source.kind === 'paper' ? 'Paper' : 'Web page'} ]</Text>
+    <Text as="p" size="1" className={styles['eyebrow']}>{source.kind === 'paper' ? 'Paper' : 'Web page'}</Text>
     <Heading as="h1" size="6" className={styles['title']}>{source.title}</Heading>
     <dl className={styles['fields']}>
       <Field label="Authors"><Value value={source.authors.length === 0 ? null : source.authors.join(', ')} /></Field>

@@ -6,7 +6,7 @@ import { withDatabase } from './database.ts';
 import { RuleError } from './errors.ts';
 import { listFitKinds } from './fit.ts';
 import type { FitKind } from './fit-schema.ts';
-import type { Contact, CvCutout, Fit, Pitch } from './outreach-schema.ts';
+import type { Contact, CvCutout, Entry, Fit, Pitch, Venue } from './outreach-schema.ts';
 import { targetOutreach } from './outreach.ts';
 import { getOverview } from './overview.ts';
 import type { Overview, Stage } from './overview-schema.ts';
@@ -29,7 +29,7 @@ export type ExportRecord = z.infer<typeof exportRecordSchema>;
 export const exportListSchema = z.array(exportRecordSchema);
 
 interface Professor {
-  target: Target; fit: Fit; contacts: Contact[]; pitch: Pitch | null; clips: Clip[]; sources: Source[]; tracks: Track[];
+  target: Target; fit: Fit; contacts: Contact[]; pitch: Pitch | null; clips: Clip[]; sources: Source[]; tracks: Track[]; venues: Venue[];
 }
 
 function esc(value: string): string {
@@ -67,7 +67,7 @@ function cvCutout(cv: CvCutout): string {
 }
 
 function stages(list: readonly Stage[]): string {
-  const marker = { done: '[x]', doing: '[~]', todo: '[ ]', blocked: '[!]' } as const;
+  const marker = { done: '✓', doing: '◐', todo: '○', blocked: '!' } as const;
   return `<ol class="stages">${list.map((stage) => `<li>${marker[stage.state]} ${esc(stage.label)}${stage.detail === null ? ''
     : ` <span class="muted">· ${esc(stage.detail)}</span>`}</li>`).join('')}</ol>`;
 }
@@ -94,6 +94,20 @@ function distinct(clips: readonly Clip[], kind: Clip['kind']): Clip[] {
     .filter((clip, index, all) => all.findIndex((other) => other.quote === clip.quote) === index);
 }
 
+function entries(list: readonly Entry[]): string {
+  return list.length === 0 ? '' : `<ul class="entries">${list.map((entry) => `<li><strong>${entry.url === null || !/^https?:\/\//.test(entry.url)
+    ? esc(entry.name) : `<a href="${esc(entry.url)}">${esc(entry.name)}</a>`}</strong> — ${esc(entry.detail)}</li>`).join('')}</ul>`;
+}
+
+function venueList(venues: readonly Venue[]): string {
+  const count = venues.reduce((sum, venue) => sum + venue.papers.length, 0);
+  if (count === 0) return '';
+  return `<p class="muted">Where they publish, from ${String(count)} of their papers in the library:</p><ul class="entries">${venues.map((venue) =>
+    `<li><strong>${esc(venue.venue ?? 'Venue not listed')}</strong> — ${String(venue.papers.length)} paper${venue.papers.length === 1 ? '' : 's'}`
+    + `${venue.preprint ? ' (preprint or repository)' : ''}: ${venue.papers.map((paper) => `${paper.url === null || !/^https?:\/\//.test(paper.url)
+      ? esc(paper.title) : `<a href="${esc(paper.url)}">${esc(paper.title)}</a>`}${paper.year === null ? '' : ` (${String(paper.year)})`}`).join('; ')}</li>`).join('')}</ul>`;
+}
+
 function fitSection(professor: Professor, kinds: readonly FitKind[]): string {
   const rows = kinds.map((kind) => {
     const value = professor.fit[kind.key];
@@ -104,10 +118,10 @@ function fitSection(professor: Professor, kinds: readonly FitKind[]): string {
     const value = professor.fit[kind.key];
     if (value === undefined || value.evidence.length === 0) return [];
     return [`<details><summary>${esc(kind.label)}: why ${value.score === null ? 'not found' : `${String(value.score)} of 3`}</summary>`
-      + `<p>${esc(value.reason)}</p>${value.evidence.map((item) => {
+      + `<p>${esc(value.reason)}</p>${kind.key === 'venue' ? venueList(professor.venues) : ''}${value.evidence.map((item) => {
         const clip = item.clipId === null ? undefined : professor.clips.find((candidate) => candidate.id === item.clipId);
         return `<div class="pair"><p class="lead">${esc(item.note)}</p>${item.cv === null ? '' : cvCutout(item.cv)}${clip === undefined ? ''
-          : cutout(clip, professor.sources)}</div>`;
+          : cutout(clip, professor.sources)}${entries(item.entries)}</div>`;
       }).join('')}<p class="muted">${esc(kind.anchors)} Scored by ${esc(value.reviewer)}.</p></details>`];
   }).join('');
   return `<h3>How well the student fits</h3><table><thead><tr><th>Kind</th><th>Score</th><th>Finding</th></tr></thead><tbody>${rows}</tbody></table>${evidence}`;
@@ -177,6 +191,7 @@ table{width:100%;border-collapse:collapse;font-size:14px;margin:8px 0}th,td{text
 .cutout{margin:12px 0;padding:10px 14px;background:var(--soft);border:1px solid var(--line)}.cutout blockquote{margin:0;font-size:14px;color:var(--muted)}
 mark{background:var(--mark);color:var(--ink);padding:0 2px}figcaption{font-size:12px;color:var(--muted);margin-top:6px}.note{margin:6px 0 0;font-size:14px}
 .pair{margin:12px 0;padding:10px 14px;border:1px solid var(--line)}.lead{margin:0 0 6px;font-weight:600}
+.entries{margin:8px 0;padding-left:18px;font-size:14px}.entries li{margin:4px 0}
 .direction{margin:16px 0;padding:14px 16px;border:2px solid var(--ink)}details{margin:8px 0}summary{cursor:pointer}
 pre{white-space:pre-wrap;background:var(--soft);padding:12px;border:1px solid var(--line);font:inherit}
 @media print{details{display:block}details>summary{display:none}}`;
@@ -256,7 +271,7 @@ export function createExport(workspace: string, input: unknown): ExportRecord {
     const sources = [...outreach.sources, ...(research?.sources ?? []).filter((source) => cited.has(source.id)
       && !outreach.sources.some((item) => item.id === source.id))];
     return { target: options.notes ? target : { ...target, notes: {} }, fit: outreach.fit, contacts: outreach.contacts,
-      pitch: options.pitches ? outreach.pitch : null, clips, sources, tracks };
+      pitch: options.pitches ? outreach.pitch : null, clips, sources, tracks, venues: outreach.venues };
   }).sort((a, b) => Number(onFinalList(b.target)) - Number(onFinalList(a.target))
     || Number(a.target.pathway === 'pitch') - Number(b.target.pathway === 'pitch') || a.target.id - b.target.id);
   const publicProfile = { ...profile, cv: options.cv ? profile.cv : null };

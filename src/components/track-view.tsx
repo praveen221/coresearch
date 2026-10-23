@@ -9,7 +9,7 @@ import type { Clip, Research, Source, TrackDetail, Verdict } from '../lib/resear
 import type { Target } from '../lib/target-schema.ts';
 import { CitationGraph } from './citation-graph.tsx';
 import {
-  BriefText, Cutout, PaperRequests, RefText, cite, kindLabels, sourceHref, statusLabels, statusMarkers, trackStatusLabels,
+  BriefText, Cutout, Origin, PaperRequests, RefText, cite, kindLabels, sourceHref, statusLabels, statusMarkers, trackStatusLabels,
 } from './research-panels.tsx';
 import { Shell, targetName } from './shell.tsx';
 import { useLive } from './use-live.ts';
@@ -19,6 +19,13 @@ const verdictLabels: Record<Verdict, string> = {
   supports: 'supports the track', challenges: 'challenges the track', answers: 'already answers it', weak: 'evidence too weak',
   unrelated: 'not relevant',
 };
+const verdictTones: Record<Verdict, string> = {
+  supports: 'stampFor', challenges: 'stampAgainst', answers: 'stampAgainst', weak: 'stampQuiet', unrelated: 'stampQuiet',
+};
+
+function Stamp({ verdict }: Readonly<{ verdict: Verdict }>): ReactElement {
+  return <span className={`${styles['stamp'] ?? ''} ${styles[verdictTones[verdict]] ?? ''}`}>{verdictLabels[verdict]}</span>;
+}
 
 function Decision({ detail, research, onDecided }: Readonly<{
   detail: TrackDetail; research: Research; onDecided: (detail: TrackDetail) => void;
@@ -53,7 +60,7 @@ function Decision({ detail, research, onDecided }: Readonly<{
       {proposed ? null : <Button variant="soft" color="gray" onClick={() => { choose('pause'); }} disabled={pending || track.status === 'paused'}>Pause</Button>}
       <Button variant="soft" color="gray" onClick={() => { choose('drop'); }} disabled={pending || track.status === 'dropped'}>{proposed ? 'Not now' : 'Drop'}</Button>
     </Flex>
-    {error === null ? null : <Text as="p" size="2" mt="2" role="alert">[!] {error}</Text>}
+    {error === null ? null : <Text as="p" size="2" mt="2" role="alert"><span className={styles['alertMark']} aria-hidden="true">!</span> {error}</Text>}
   </section>;
 }
 
@@ -63,7 +70,7 @@ function CaseFile({ index, source, clips, verdict, assessment }: Readonly<{
   return <article id={`case-${String(index)}`} className={styles['caseFile']}>
     <Flex justify="between" gap="3" wrap="wrap" align="baseline">
       <Heading as="h3" size="3">{String(index)}. <a href={sourceHref(source)}>{cite(source)}</a></Heading>
-      <Text size="2" className={styles['verdict']}>[{verdictLabels[verdict]}]</Text>
+      <Stamp verdict={verdict} />
     </Flex>
     <Text as="p" size="2">{source.title}</Text>
     <Text as="p" size="1" color="gray">{statusMarkers[source.status]} {statusLabels[source.status]}
@@ -106,7 +113,7 @@ function Glance({ detail }: Readonly<{ detail: TrackDetail }>): ReactElement {
     {assessed.length === 0 ? null : <ol className={styles['glanceList']}>{assessed.map((item, index) =>
       <li key={item.source.id}>
         <a href={`#case-${String(index + 1)}`}>{String(index + 1)}. {cite(item.source)}</a>
-        <Text size="2" weight="medium"> [{verdictLabels[item.verdict]}]</Text>
+        {' '}<Stamp verdict={item.verdict} />
         <Text as="p" size="2"><RefText text={firstSentence(item.assessment)} /></Text>
       </li>)}</ol>}
   </section>;
@@ -161,12 +168,12 @@ export function TrackView({ initialTargets, target, initialDetail, initialResear
   const assessed = detail.links.filter((link) => link.verdict !== null).length;
   const last = detail.events.at(-1);
   return <Shell current={target.id} initialTargets={initialTargets} section={targetName(target)} step="Research direction" wide>
-    <Text as="p" size="2" color="gray">[ {track.kind === 'frontier' ? 'Frontier' : 'Track'} · {track.origin === 'student' ? 'your idea' : 'proposed by your agent'} ]</Text>
+    <Text as="p" size="1" className={styles['eyebrow']}>{track.kind === 'frontier' ? 'Frontier' : 'Track'} · {track.origin === 'student' ? 'your idea' : 'proposed by your agent'}</Text>
     <Heading as="h1" size="7" className={styles['title']}>{track.title}</Heading>
     <Text as="p" size="1" color="gray">Hypothesis</Text>
     <Text as="p" size="4">{track.question}</Text>
     <Text as="p" size="2" color="gray" mt="2">
-      [{track.origin}] {trackStatusLabels[track.status]} · {String(papers.length)} papers · {String(assessed)} assessed ·
+      <Origin track={track} /> {trackStatusLabels[track.status]} · {String(papers.length)} papers · {String(assessed)} assessed ·
       {' '}{String(papers.filter((paper) => paper.status === 'full').length)} read in full · {String(detail.clips.length)} cutouts ·
       {' '}{String(searches)} searches · <a href={`/targets/${String(target.id)}`}>back to {targetName(target)}</a>
     </Text>

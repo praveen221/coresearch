@@ -51,7 +51,7 @@ export function ExportView({ initialTargets, initialExports }: Readonly<{ initia
     });
   }
   return <Shell current="export" initialTargets={initialTargets} section="Share or export" step="Share or export">
-    <Text as="p" size="2" color="gray">[ Share or export ]</Text>
+    <Text as="p" size="1" className={styles['eyebrow']}>Share or export</Text>
     <Heading as="h1" size="7" className={styles['title']}>Share or export</Heading>
     <Text as="p" color="gray">Make a copy of your research that anyone can read, such as an advisor, a mentor, or a friend, or move it to another computer.
       Each export is a folder with a readable report, the full database, and the same data as JSON.</Text>

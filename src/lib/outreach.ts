@@ -9,7 +9,7 @@ import {
   collaboratorCiteSchema, facetSchema, fitInputSchema, fitSchema, pitchEditSchema, pitchInputSchema, pitchSchema, pitchStatusSchema,
   pitchWordLimit,
 } from './outreach-schema.ts';
-import type { Contact, CvCutout, Fit, MatchKind, OutreachRow, Pitch, TargetOutreach } from './outreach-schema.ts';
+import type { Contact, CvCutout, Fit, MatchKind, OutreachRow, Pitch, TargetOutreach, Venue } from './outreach-schema.ts';
 import { readClipsById } from './research.ts';
 import type { Target } from './target-schema.ts';
 import { readTargets } from './targets.ts';
@@ -72,6 +72,22 @@ function readPitch(db: DatabaseSync, targetId: number): Pitch | null {
 function professorPapers(db: DatabaseSync, professor: Target): z.infer<typeof paperRow>[] {
   return z.array(paperRow).parse(db.prepare('SELECT id, title, year, venue, url, authors FROM sources WHERE target_id = ? AND kind = \'paper\'')
     .all(professor.id)).filter((paper) => names.parse(JSON.parse(paper.authors)).some((author) => samePerson(author, professor.professor)));
+}
+
+const preprintVenue = /\b(arxiv|zenodo|open science framework|ssrn|psyarxiv|biorxiv|medrxiv|research square|figshare|repository|preprints?)\b/i;
+
+function venues(db: DatabaseSync, professor: Target): Venue[] {
+  const groups = new Map<string, Venue>();
+  for (const paper of professorPapers(db, professor)) {
+    const name = paper.venue === null || paper.venue.trim() === '' ? null : paper.venue.trim();
+    const group = groups.get(name ?? '') ?? { venue: name, preprint: name !== null && preprintVenue.test(name), papers: [] };
+    group.papers.push({ sourceId: paper.id, title: paper.title, year: paper.year, url: paper.url });
+    groups.set(name ?? '', group);
+  }
+  const latest = (venue: Venue): number => Math.max(0, ...venue.papers.map((paper) => paper.year ?? 0));
+  return [...groups.values()].map((group) => ({ ...group, papers: [...group.papers].sort((a, b) => (b.year ?? 0) - (a.year ?? 0)) }))
+    .sort((a, b) => Number(a.preprint) - Number(b.preprint) || Number(a.venue === null) - Number(b.venue === null)
+      || b.papers.length - a.papers.length || latest(b) - latest(a));
 }
 
 function cutout(row: z.infer<typeof collaboratorRow>): CvCutout | null {
@@ -150,7 +166,7 @@ export function scoreFit(workspace: string, input: unknown): Fit {
     facet, value, evidence: value.evidence.map((item) => {
       const found = item.cvQuote === null ? null : locateInCv(pages, item.cvQuote);
       return { cv: found === null ? null : { quote: found.quote, page: found.page, before: found.before, after: found.after }, clipId: item.clipId,
-        note: item.note };
+        entries: item.entries, note: item.note };
     }),
   }));
   return withDatabase(workspace, (db) => transaction(db, () => {
@@ -194,7 +210,7 @@ export function targetOutreach(workspace: string, targetId: number): TargetOutre
     const clips = readClipsById(db, clipIds);
     const sourceIds = [...new Set([...clips.map((clip) => clip.sourceId), ...found.flatMap((contact) => contact.papers.map((paper) => paper.sourceId))])];
     const sources = sourceIds.length === 0 ? [] : readSources(db, `WHERE id IN (${sourceIds.map(() => '?').join(', ')}) ORDER BY id`, ...sourceIds);
-    return { pitch, contacts: found, fit, kinds: readKinds(db), clips, sources };
+    return { pitch, contacts: found, fit, kinds: readKinds(db), clips, sources, venues: venues(db, professor) };
   }));
 }
 

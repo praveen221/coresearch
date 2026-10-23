@@ -120,9 +120,9 @@ export function ProfileForm({ initialBase, latest, onSaved, onCancel }: Readonly
       <ListEditor label="collaborator" items={draft.collaborators} onChange={list('collaborators')} />
     </section>
     <Flex direction="column" gap="3" py="5" role="status">
-      {stale ? <Text size="2">[!] Your agent saved changes while you were editing
+      {stale ? <Text size="2"><span className={styles['alertMark']} aria-hidden="true">!</span> Your agent saved changes while you were editing
         {changedElsewhere.length > 0 ? ` (${changedElsewhere.join(', ')})` : ''}. Keep your edits on the latest profile, review, then save.</Text> : null}
-      {errors.map((error) => <Text key={error} size="2">[!] {error}</Text>)}
+      {errors.map((error) => <Text key={error} size="2"><span className={styles['alertMark']} aria-hidden="true">!</span> {error}</Text>)}
     </Flex>
     <Flex gap="3" wrap="wrap">
       {stale

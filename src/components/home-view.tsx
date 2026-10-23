@@ -89,7 +89,7 @@ export function HomeView({ initialTargets, initialOverview }: Readonly<{ initial
   const steps = overview.steps.filter((step) => step.finalList);
   const moreSteps = overview.steps.filter((step) => !step.finalList);
   return <Shell current="home" initialTargets={initialTargets} section="Home" step="Home" wide>
-    <Text as="p" size="2" color="gray">[ Home ]</Text>
+    <Text as="p" size="1" className={styles['eyebrow']}>Home</Text>
     <Heading as="h1" size="7" className={styles['title']}>Your applications</Heading>
     <Summary overview={overview} />
     <section aria-labelledby="next-heading" className={styles['section']}>

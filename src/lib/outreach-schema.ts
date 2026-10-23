@@ -62,17 +62,25 @@ export const collaboratorCiteSchema = z.strictObject({
   note: text.max(300).describe('The relationship in a few words, e.g. “Co-author of her CHI 2026 paper”.'),
 });
 
+const entryInput = z.strictObject({
+  name: text.max(200).describe('A person, grant, venue, dataset, or tool as the cutout names it, e.g. “Joon Sung Park” or “NSF IIS-2403435”.'),
+  detail: text.max(300).describe('What the sources say about it, e.g. “PhD 2024; now research scientist, Google DeepMind” or “PI, 2024 to 2027”.'),
+  url: z.url({ protocol: /^https?$/ }).max(2048).nullable().describe('Its own page: a homepage, profile, or award record; null when none exists.'),
+});
 const evidenceInput = z.strictObject({
   cvQuote: z.string().trim().min(15, 'Quote at least a full phrase of the CV.').max(600).nullable()
     .describe('Exact words from the student’s CV; null for a fact about the lab alone.'),
   clipId: id.nullable().describe('A cutout from the professor’s own paper or one of this target’s saved pages.'),
+  entries: z.array(entryInput).max(20).default([]).describe('The people, grants, venues, datasets, or tools the cutout names, each with its own '
+    + 'link: alumni and where they went, grants and their award records.'),
   note: text.max(400).describe('What this evidence shows, in one sentence.'),
-}).refine((value) => value.cvQuote !== null || value.clipId !== null, 'Quote the CV, cite a cutout, or both.');
+}).refine((value) => value.cvQuote !== null || value.clipId !== null, 'Quote the CV, cite a cutout, or both.')
+  .refine((value) => value.entries.length === 0 || value.clipId !== null, 'Back named entries with the cutout that names them.');
 const facetInput = z.strictObject({
   score: z.number().int().min(0).max(3).nullable().describe('0–3 by the anchors of this kind of fit; null: could not be checked.'),
   finding: text.max(400).describe('The fact about the lab, e.g. “Field experiments with thousands of participants on live platforms”.'),
   reason: text.max(800).describe('Why it fits the student or not.'),
-  evidence: z.array(evidenceInput).max(4).default([]).describe('A score of 2 or 3 needs a cutout from their work, and for topic, method, '
+  evidence: z.array(evidenceInput).max(8).default([]).describe('A score of 2 or 3 needs a cutout from their work, and for topic, method, '
     + 'scale, venue, and skill also an exact CV quote.'),
 });
 export const fitInputSchema = z.strictObject({
@@ -82,9 +90,11 @@ export const fitInputSchema = z.strictObject({
   reviewer: text.max(200).describe('Who scored it, e.g. “Fit reviewer A (agent)”.'),
 });
 
+export const entrySchema = z.strictObject({ name: z.string(), detail: z.string(), url: z.string().nullable() });
+export type Entry = z.infer<typeof entrySchema>;
 export const facetSchema = z.strictObject({
   score: z.number().int().min(0).max(3).nullable(), finding: z.string(), reason: z.string(),
-  evidence: z.array(z.strictObject({ cv: cvCutoutSchema.nullable(), clipId: id.nullable(), note: z.string() })),
+  evidence: z.array(z.strictObject({ cv: cvCutoutSchema.nullable(), clipId: id.nullable(), entries: z.array(entrySchema).default([]), note: z.string() })),
   reviewer: z.string(), scoredAt: timestamp,
 });
 export type Facet = z.infer<typeof facetSchema>;
@@ -118,9 +128,15 @@ export interface ListPreview {
   skipped: { row: number; reason: string }[];
 }
 
+export const venueSchema = z.strictObject({
+  venue: z.string().nullable(), preprint: z.boolean(),
+  papers: z.array(z.strictObject({ sourceId: id, title: z.string(), year: z.number().int().nullable(), url: z.string().nullable() })),
+});
+export type Venue = z.infer<typeof venueSchema>;
+
 export const outreachListSchema = z.strictObject({ rows: z.array(outreachRowSchema), kinds: z.array(fitKindSchema) });
 export const targetOutreachSchema = z.strictObject({
   pitch: pitchSchema.nullable(), contacts: z.array(contactSchema), fit: fitSchema, kinds: z.array(fitKindSchema), clips: z.array(clipSchema),
-  sources: z.array(sourceSchema),
+  sources: z.array(sourceSchema), venues: z.array(venueSchema),
 });
 export type TargetOutreach = z.infer<typeof targetOutreachSchema>;

@@ -19,16 +19,14 @@ function ItemList({ items }: Readonly<{ items: readonly string[] }>): ReactEleme
 }
 
 function CvSection({ profile, onSaved }: Readonly<{ profile: Profile; onSaved: (profile: Profile) => void }>): ReactElement {
-  const [file, setFile] = useState<File | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  function upload(): void {
-    if (file === null) return;
+  function upload(file: File): void {
     const form = new FormData();
     form.set('file', file);
     startTransition(async () => {
       const result = await uploadCv(form);
-      if (result.ok) { onSaved(result.value); setFile(null); setMessage('Saved. Your agent quotes it exactly in pitches.'); }
+      if (result.ok) { onSaved(result.value); setMessage('Saved. Your agent quotes it exactly in pitches.'); }
       else setMessage(result.errors.join(' '));
     });
   }
@@ -38,9 +36,16 @@ function CvSection({ profile, onSaved }: Readonly<{ profile: Profile; onSaved: (
       : <><a href={fileUrl(profile.cv.filePath)} target="_blank" rel="noreferrer">Your CV</a> · {String(profile.cv.pageCount)} page
         {profile.cv.pageCount === 1 ? '' : 's'} · added {new Date(profile.cv.addedAt).toUTCString().slice(5, 16)}</>}</Text>
     <Flex gap="2" mt="3" align="center" wrap="wrap">
-      <input type="file" accept="application/pdf" aria-label="CV as a PDF" className={styles['file']} disabled={pending}
-        onChange={(event) => { setFile(event.target.files?.item(0) ?? null); }} />
-      <Button variant="soft" color="gray" disabled={file === null || pending} onClick={upload}>{profile.cv === null ? 'Upload CV' : 'Replace CV'}</Button>
+      <Button asChild variant="soft" className={styles['uploadButton']}>
+        <label>{pending ? 'Saving…' : profile.cv === null ? 'Upload CV' : 'Replace CV'}
+          <input type="file" accept="application/pdf" aria-label="CV as a PDF" className={styles['srOnly']} disabled={pending}
+            onChange={(event) => {
+              const chosen = event.target.files?.item(0) ?? null;
+              event.target.value = '';
+              if (chosen !== null) upload(chosen);
+            }} />
+        </label>
+      </Button>
     </Flex>
     {message === null ? null : <Text as="p" size="2" mt="2" role="status">{message}</Text>}
   </section>;
@@ -55,7 +60,7 @@ export function ProfileView({ initialProfile, initialTargets }: Readonly<{
   const funding = profile.needsFunding === null ? null : profile.needsFunding ? 'Funding needed' : 'Funding not needed';
   return (
     <Shell current="profile" initialTargets={initialTargets} section="Your profile" step="Profile">
-          <Text as="p" size="2" color="gray">[ Your starting point ]</Text>
+          <Text as="p" size="1" className={styles['eyebrow']}>Your starting point</Text>
           <Heading as="h1" size="7" className={styles['title']}>Your profile</Heading>
           <Flex justify="between" align="start" gap="4" wrap="wrap">
             <Text as="p" color="gray">Tell your agent about yourself, or edit the details here.</Text>

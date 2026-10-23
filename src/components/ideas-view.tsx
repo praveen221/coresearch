@@ -35,7 +35,7 @@ export function IdeasView({ initialIdeas, initialTargets }: Readonly<{ initialId
   }
 
   return <Shell current="ideas" initialTargets={initialTargets} section="Your ideas" step="Ideas">
-    <Text as="p" size="2" color="gray">[ What you bring ]</Text>
+    <Text as="p" size="1" className={styles['eyebrow']}>What you bring</Text>
     <Heading as="h1" size="7" className={styles['title']}>Your ideas</Heading>
     <Text as="p" color="gray">
       Research questions or areas you already have in mind. Each one becomes a student track. With none, your agent reads the
@@ -71,7 +71,7 @@ export function IdeasView({ initialIdeas, initialTargets }: Readonly<{ initialId
           <Flex><Button type="submit" disabled={pending || text.trim() === ''}>{pending ? 'Saving…' : 'Add idea'}</Button></Flex>
         </Flex>
       </form>
-      {errors.map((error) => <Text key={error} as="p" size="2" mt="2" role="alert">[!] {error}</Text>)}
+      {errors.map((error) => <Text key={error} as="p" size="2" mt="2" role="alert"><span className={styles['alertMark']} aria-hidden="true">!</span> {error}</Text>)}
     </section>
     <Flex py="5" role="status">
       <Text size="2" color="gray">{failed ? 'Live refresh unavailable; retrying automatically.' : 'Ideas from your agent appear automatically.'}</Text>

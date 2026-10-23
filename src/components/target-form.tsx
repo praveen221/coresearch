@@ -47,7 +47,7 @@ function LinkEditor({ links, onChange }: Readonly<{ links: TargetDraft['links'];
         onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); add(); } }} />
       <Button type="button" variant="soft" color="gray" onClick={add} disabled={url.trim() === ''}>Add link</Button>
     </Flex>
-    {error === null ? null : <Text as="p" size="2" mt="2" role="alert">[!] {error}</Text>}
+    {error === null ? null : <Text as="p" size="2" mt="2" role="alert"><span className={styles['alertMark']} aria-hidden="true">!</span> {error}</Text>}
   </>;
 }
 
@@ -124,9 +124,9 @@ export function TargetForm({ initialBase, latest, onSaved, onCancel }: Readonly<
       <LinkEditor links={draft.links} onChange={(links) => { update('links', links); }} />
     </section>
     <Flex direction="column" gap="3" py="5" role="status">
-      {stale ? <Text size="2">[!] Your agent saved changes while you were editing
+      {stale ? <Text size="2"><span className={styles['alertMark']} aria-hidden="true">!</span> Your agent saved changes while you were editing
         {changedElsewhere.length > 0 ? ` (${changedElsewhere.join(', ')})` : ''}. Keep your edits on the latest target, review, then save.</Text> : null}
-      {errors.map((error) => <Text key={error} size="2">[!] {error}</Text>)}
+      {errors.map((error) => <Text key={error} size="2"><span className={styles['alertMark']} aria-hidden="true">!</span> {error}</Text>)}
     </Flex>
     <Flex gap="3" wrap="wrap">
       {stale

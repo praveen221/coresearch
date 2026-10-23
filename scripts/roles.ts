@@ -169,18 +169,26 @@ function fitScorer(context: RoleContext, target: number): string {
     header('fit scorer', 'Your job is to judge how well the student fits this professor on each kind of fit the student chose, with evidence a '
       + 'human can check, and to gather what the professor looks for in a candidate.', context),
     `1. Read ${c('target:get', `--id ${String(target)}`)}, ${c('source:list', `--target ${String(target)}`)}, ${c('clip:list', `--target ${String(target)}`)}, `
-      + `and any existing pitch (${c('pitch:get', `--target ${String(target)}`)}). Read across their recent papers of different kinds (studies, systems, `
+      + `any existing scores (${c('fit:get', `--target ${String(target)}`)}), and any existing pitch (${c('pitch:get', `--target ${String(target)}`)}). Read across their recent papers of different kinds (studies, systems, `
       + `surveys, datasets) and their most-cited works; add missing ones with ${c('paper:add', `--target ${String(target)} --ref <DOI or arXiv id>`)}.`,
     `2. Save their prospective-student, FAQ, joining, and alumni pages and the programme’s admissions pages with ${c('source:page', `--target ${String(target)} --url <url>`)}. `
       + 'Cut out everything a candidate would otherwise have to read those pages for: what they look for, who is usually admitted, and their advice '
       + 'to applicants (kind "criteria"); rules, deadlines, and AI-use rules (kind "requirement"); grants and alumni placements (kind "fact").',
     '3. For funding, read the acknowledgements of their recent papers and public award records (for example NSF, UKRI, ERC) for grants that cover the '
-      + 'student’s start. For alumni, use the lab’s people page.',
+      + 'student’s start, and cut out each acknowledgement line. For alumni, use the lab’s people page and cut out the lines that say where each '
+      + 'alumnus went.',
     `4. Score each kind 0 to 3, or null when it cannot be checked:\n${kinds}`,
+    '5. Back every claim in a finding with its own evidence item that a human can check in seconds: the exact sentence from their work (a methods '
+      + 'line, a sample size, a venue line, an acknowledgement) beside the exact CV words it meets. List what a cutout names as entries, each with '
+      + 'its own link: every alumnus with their degree year and where they are now; every grant with its funder, number, and years; the lab’s '
+      + 'main venues and the student’s. Use links the page gives, or open a link and confirm it is the same person or award; otherwise leave the '
+      + 'url null. The app lists their venues from the library itself.',
     `A score of 2 or 3 needs a cutout from their own work or pages, and for kinds about the student also an exact CV quote. Save with `
       + `${c('fit:score')}: {"targetId": ${String(target)}, "reviewer": "Fit scorer (agent)", "facets": {"<kind>": {"score": n, "finding": "the fact `
-      + 'about the lab", "reason": "why it fits the student or not", "evidence": [{"cvQuote": "exact CV words or null", "clipId": n or null, "note": '
-      + '"what this shows"}]}}}. You may submit some kinds first; later submissions replace only the kinds they include. Be calibrated; 3s are rare.',
+      + 'about the lab", "reason": "why it fits the student or not", "evidence": [{"cvQuote": "exact CV words or null", "clipId": n or null, '
+      + '"entries": [{"name": "…", "detail": "…", "url": "https://… or null"}], "note": "what this shows"}]}}}. You may submit some kinds first; '
+      + 'later submissions replace only the kinds they include. Where scores exist, keep each one unless your evidence changes it, and say what '
+      + 'changed. Be calibrated; 3s are rare.',
     'Finish with the scores, the total, the strongest reason, and anything the student must know before applying. Under 200 words.',
   ].join('\n');
 }
