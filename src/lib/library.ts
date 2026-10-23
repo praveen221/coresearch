@@ -1,4 +1,4 @@
-import { readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
 import { parse } from 'node-html-parser';
@@ -255,8 +255,25 @@ export async function savePage(workspace: string, targetId: number, url: string)
   }, 'BEGIN IMMEDIATE'));
 }
 
+export function reconcileFiles(workspace: string): { papers: number; pages: number } {
+  return withDatabase(workspace, (db) => transaction(db, () => {
+    const rows = z.array(z.object({ id: z.number(), kind: z.string(), file_path: z.string().nullable(), text_path: z.string().nullable() }))
+      .parse(db.prepare('SELECT id, kind, file_path, text_path FROM sources WHERE file_path IS NOT NULL OR text_path IS NOT NULL').all());
+    const gone = (path: string | null): boolean => path !== null && !existsSync(join(workspace, path));
+    const missing = rows.filter((row) => gone(row.file_path) || gone(row.text_path));
+    for (const row of missing) {
+      db.prepare('UPDATE sources SET file_path = ?, text_path = ? WHERE id = ?')
+        .run(gone(row.file_path) ? null : row.file_path, gone(row.text_path) ? null : row.text_path, row.id);
+    }
+    return { papers: missing.filter((row) => row.kind === 'paper').length, pages: missing.filter((row) => row.kind === 'page').length };
+  }, 'BEGIN IMMEDIATE'));
+}
+
 export function sourcePages(workspace: string, source: Source): string[] {
-  if (source.textPath === null) throw new RuleError('This source has no extracted text yet; download or attach it first.');
+  if (source.textPath === null) {
+    throw new RuleError(source.kind === 'page' ? 'This page has no saved text in this folder; save it again with source:page.'
+      : 'This paper has no saved text in this folder; download it with papers:fetch, or attach the PDF with paper:attach.');
+  }
   const pages = stringsSchema.parse(JSON.parse(readFileSync(join(workspace, source.textPath), 'utf8')));
   return source.kind === 'paper' ? stripRunningLines(pages) : pages;
 }

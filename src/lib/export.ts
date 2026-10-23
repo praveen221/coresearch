@@ -227,8 +227,13 @@ const readme = `This folder is a Coresearch export.
 report.html        Open in any web browser. A readable report of the applications, research directions, fit, and evidence.
 coresearch.sqlite  The full database. Open it with Coresearch, or with any SQLite viewer.
 data.json          The same research as JSON, for other tools.
+cv.pdf             The student’s CV, when included.
 
 Every quotation in the report is checked against the saved text of its source.
+
+To continue in Coresearch, put these files in an empty folder, move cv.pdf into a folder named profile inside it, and run
+setup with that folder. Paper PDFs and saved pages are not exported: download them again with papers:fetch, and save pages
+again with source:page.
 `;
 
 function sizeOf(workspace: string, folder: string, name: string): { name: string; path: string; bytes: number } {

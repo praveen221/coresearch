@@ -7,7 +7,8 @@ import { test } from 'node:test';
 import { resolveServedFile } from '../src/lib/files.ts';
 import { addCategory, categorizeSource } from '../src/lib/categories.ts';
 import {
-  addManualSource, attachPdf, attachPdfBytes, getSource, isBotCheck, markFutureScanned, pageText, removeSource, requestPaper, savePaper, setSourceStatus,
+  addManualSource, attachPdf, attachPdfBytes, getSource, isBotCheck, markFutureScanned, pageText, reconcileFiles, removeSource, requestPaper, savePaper,
+  setSourceStatus, sourcePages,
 } from '../src/lib/library.ts';
 import type { Work } from '../src/lib/openalex.ts';
 import {
@@ -54,6 +55,14 @@ void test('a paper is stored once, its PDF text is extracted, and reading status
     assert.equal(setSourceStatus(workspace, source.id, { status: 'full', note: 'whole paper' }).statusNote, 'whole paper');
     writeFileSync(file, 'not a pdf');
     await assert.rejects(attachPdf(workspace, source.id, file), /not a PDF/);
+    rmSync(join(workspace, attached.filePath ?? ''));
+    assert.deepEqual(reconcileFiles(workspace), { papers: 1, pages: 0 });
+    const reconciled = getSource(workspace, source.id);
+    assert.deepEqual([reconciled.filePath, reconciled.textPath, reconciled.status], [null, attached.textPath, 'full']);
+    rmSync(join(workspace, attached.textPath ?? ''));
+    assert.deepEqual(reconcileFiles(workspace), { papers: 1, pages: 0 });
+    assert.throws(() => sourcePages(workspace, getSource(workspace, source.id)), /download it with papers:fetch/);
+    assert.deepEqual(reconcileFiles(workspace), { papers: 0, pages: 0 });
   });
 });
 

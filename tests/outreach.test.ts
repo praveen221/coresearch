@@ -169,8 +169,10 @@ void test('a pitch connects quoted CV evidence with the professor’s own cutout
     assert.deepEqual(getFit(workspace, professor.id)['topic']?.evidence[0]?.entries, []);
     savePaper(workspace, professor.id, { ...paper, openalexId: 'W12', doi: '10.1000/preprint', title: 'A preprint', year: 2025,
       venue: 'arXiv (Cornell University)', authors: ['Jane Doe'], landingUrl: 'https://arxiv.org/abs/2501.00001' });
+    savePaper(workspace, professor.id, { ...paper, openalexId: 'W13', doi: '10.1000/swapped', title: 'Family name first', year: 2024,
+      authors: ['Doe Jane'], landingUrl: 'https://doi.org/10.1000/swapped' });
     assert.deepEqual(targetOutreach(workspace, professor.id).venues.map((venue) => [venue.venue, venue.preprint, venue.papers.map((item) => item.title)]),
-      [['Example Venue', false, ['Exposing manipulation in conversation']], ['arXiv (Cornell University)', true, ['A preprint']]]);
+      [['Example Venue', false, ['Exposing manipulation in conversation', 'Family name first']], ['arXiv (Cornell University)', true, ['A preprint']]]);
     const rows = listOutreach(workspace);
     assert.deepEqual(rows.map((row) => [row.professor, row.pathway, row.pitch, row.hold, row.openings, row.deadline, row.contacts.length, row.fit]),
       [['Jane Doe', 'pitch', 'sent', null, 'yes', '2026-12-01', 1, { compute: 1, topic: 3, funding: 1, alumni: 2 }],

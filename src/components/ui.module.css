@@ -232,7 +232,9 @@
 .flowLaneTitle { font-family: var(--cr-mono); text-transform: uppercase; letter-spacing: .06em; }
 .section { border-top-color: var(--cr-border); }
 .trackItem a { font-family: var(--cr-serif); font-size: 16px; }
-.header :global(.rt-Button), .mobileTools :global(.rt-Button), .menuButton { font-family: var(--cr-mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+.header :global(.rt-Button), .mobileTools :global(.rt-Button) { font-family: var(--cr-mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+.menuButton { display: grid; place-items: center; width: 44px; height: 44px; margin-right: -10px; color: var(--cr-ink); }
+.menuIcon { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
 .eyebrow { margin: 0; font-family: var(--cr-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--cr-muted); }
 .tag, .tagYou { display: inline-block; margin-right: 6px; padding: 1px 6px; border-radius: 2px; font-family: var(--cr-mono); font-size: 10.5px;
   letter-spacing: .04em; text-transform: uppercase; vertical-align: 1px; color: var(--cr-body); box-shadow: inset 0 0 0 1px var(--cr-border); }

@@ -44,6 +44,7 @@ function person(name: string): { last: string; first: string } {
 function nameMatch(a: string, b: string): MatchKind | null {
   const left = person(a);
   const right = person(b);
+  if (left.first.length > 1 && right.first.length > 1 && left.first === right.last && left.last === right.first) return 'name';
   if (left.last === '' || left.last !== right.last || left.first.charAt(0) !== right.first.charAt(0)) return null;
   return left.first.length > 1 && left.first === right.first ? 'name' : 'initial';
 }

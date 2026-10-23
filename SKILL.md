@@ -13,7 +13,7 @@ Run commands from this skill's directory, located relative to this `SKILL.md`; n
 
 1. First installation (no `node_modules` in this directory): run `npm ci`.
 2. Run `npm run coresearch -- workspace`. It prints the student's workspace folder, or `null` before the first setup.
-3. If `null`: ask the student where Coresearch should keep their research. Suggest `~/Documents/Coresearch`; any folder name and location is fine, including an existing folder or a copy of someone's workspace. Expand `~` to an absolute path. Coresearch supports one workspace per installation. Then run `npm run coresearch -- setup --workspace <absolute-path>`. Setup creates or preserves the database, remembers the folder, and builds the UI. It refuses a folder inside a Git repository unless the repository ignores it.
+3. If `null`: ask the student where Coresearch should keep their research. Suggest `~/Documents/Coresearch`; any folder name and location is fine, including an existing folder, a copy of someone's workspace, or an unzipped export. Expand `~` to an absolute path. Coresearch supports one workspace per installation. Then run `npm run coresearch -- setup --workspace <absolute-path>`. Setup creates or preserves the database, remembers the folder, and builds the UI. It refuses a folder inside a Git repository unless the repository ignores it.
 4. Run `npm run coresearch -- start`. Repeated starts reuse a healthy instance. Return the URL only after successful startup.
 5. Read saved data with `profile:get` and `target:list` before asking for information.
 

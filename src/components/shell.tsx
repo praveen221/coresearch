@@ -45,7 +45,11 @@ export function Shell({ current, initialTargets, section, step, wide = false, ch
           <span className={styles['mobileTools']}>
             <AppearanceToggle />
             <button type="button" className={styles['menuButton']} aria-expanded={menu} aria-controls="main-navigation"
-              onClick={() => { setMenu(!menu); }}>{menu ? 'Close' : 'Menu'}</button>
+              aria-label={menu ? 'Close menu' : 'Open menu'} onClick={() => { setMenu(!menu); }}>
+              <svg viewBox="0 0 24 24" aria-hidden="true" className={styles['menuIcon']}>
+                <path d={menu ? 'M6 6l12 12M18 6 6 18' : 'M4 7h16M4 12h16M4 17h16'} />
+              </svg>
+            </button>
           </span>
         </div>
         <nav id="main-navigation" aria-label="Main navigation" className={menu ? styles['navigationOpen'] : styles['navigation']}>

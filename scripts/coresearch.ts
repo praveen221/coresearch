@@ -14,6 +14,7 @@ import { isResearchCommand, researchCommands, researchOptions, runResearch } fro
 import { chooseWorkspace, currentWorkspace, rememberWorkspace, rememberedWorkspace } from '../src/lib/workspace.ts';
 import { attachCv, cvPages } from '../src/lib/cv.ts';
 import { createExport, exportOptionsSchema, listExports } from '../src/lib/export.ts';
+import { reconcileFiles } from '../src/lib/library.ts';
 import { blindDrafts } from '../src/lib/drafts.ts';
 import { configureFitKinds, listFitKinds } from '../src/lib/fit.ts';
 import { slug, targetFolder } from '../src/lib/files.ts';
@@ -246,7 +247,11 @@ async function main(): Promise<unknown> {
       const revision = currentRevision(packageRoot);
       if (revision !== null) writeFileSync(installedRevision, `${revision}\n`);
       rememberWorkspace(settings, workspace);
-      return { initialized: true, workspace };
+      const missing = reconcileFiles(workspace);
+      return { initialized: true, workspace, ...(missing.papers + missing.pages === 0 ? {} : {
+        missingFiles: missing, next: 'Some saved files are not in this folder. Download papers again with papers:fetch --target <id> for each '
+          + 'professor, and save pages again with source:page.',
+      }) };
     }
     case 'start':
       getProfile(workspace);
