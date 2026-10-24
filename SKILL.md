@@ -11,7 +11,7 @@ Run commands from this skill's directory, located relative to this `SKILL.md`; n
 
 ## Setup and reopen
 
-1. First installation (no `node_modules` in this directory): run `npm ci`.
+1. Confirm `node -v` is 24.14 or newer and below 25. If an older Node is first on `PATH`, install Node 24.14+ (official tarball or nvm/fnm) and put that `bin` first; do not set `engine-strict=false` or change `engines`. On Linux without a version manager: `curl -fsSL https://nodejs.org/dist/v24.14.0/node-v24.14.0-linux-x64.tar.xz | tar -xJ -C /opt && export PATH=/opt/node-v24.14.0-linux-x64/bin:$PATH`. Then check `node -v` and, if this directory has no `node_modules`, run `npm ci`.
 2. Run `npm run coresearch -- workspace`. It prints the student's workspace folder, or `null` before the first setup.
 3. If `null`: ask the student where Coresearch should keep their research. Suggest `~/Documents/Coresearch`; any folder name and location is fine, including an existing folder, a copy of someone's workspace, or an unzipped export. Expand `~` to an absolute path. Coresearch supports one workspace per installation. Then run `npm run coresearch -- setup --workspace <absolute-path>`. Setup creates or preserves the database, remembers the folder, and builds the UI. It refuses a folder inside a Git repository unless the repository ignores it.
 4. Run `npm run coresearch -- start`. Repeated starts reuse a healthy instance. Return the URL only after successful startup.

@@ -6,7 +6,7 @@ Website: [praveen221.github.io/coresearch](https://praveen221.github.io/coresear
 
 ## Install
 
-Requires [Node.js 24](https://nodejs.org) (24.14 or newer), Git, and an AI agent that can run commands on your computer: Claude Code (terminal, desktop app, or IDE), Codex, Cursor, or similar.
+Requires [Node.js 24](https://nodejs.org) (24.14 or newer; not Node 22), Git, and an AI agent that can run commands on your computer: Claude Code (terminal, desktop app, or IDE), Codex, Cursor, or similar. Check with `node -v`. If `npm ci` fails with `engine Not compatible`, an older Node is first on `PATH`: install 24.14+ and put it first; do not bypass the engine check. On Linux without a version manager: `curl -fsSL https://nodejs.org/dist/v24.14.0/node-v24.14.0-linux-x64.tar.xz | tar -xJ -C /opt && export PATH=/opt/node-v24.14.0-linux-x64/bin:$PATH`.
 
 Claude Code: paste this into a session.
 
