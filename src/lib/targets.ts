@@ -66,6 +66,16 @@ function readOne(db: DatabaseSync, id: number): Target {
   return target;
 }
 
+export function personKey(name: string): string {
+  return name.normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase()
+    .replace(/\b(prof|professor|dr|mr|ms|mrs)\b\.?/g, ' ').replace(/[^a-z ]/g, ' ').split(/\s+/).filter((part) => part !== '')
+    .filter((_, index, parts) => index === 0 || index === parts.length - 1).join(' ');
+}
+
+function existingTargetId(targets: readonly Target[], professor: string, except?: number): number | null {
+  return targets.find((target) => target.id !== except && personKey(target.professor) === personKey(professor))?.id ?? null;
+}
+
 function saveLinks(db: DatabaseSync, id: number, links: readonly Link[]): void {
   for (const link of links) {
     db.prepare(`INSERT INTO target_links (target_id, kind, url) VALUES (?, ?, ?)
@@ -81,6 +91,8 @@ function assertOwnClip(db: DatabaseSync, targetId: number, clipId: number): void
 
 export function insertTarget(db: DatabaseSync, input: unknown): Target {
   const target = targetInputSchema.parse(input);
+  const existing = existingTargetId(readTargets(db), target.professor);
+  if (existing !== null) throw new RuleError(`Already a target (${String(existing)}).`);
   const now = new Date().toISOString();
   const result = db.prepare(`INSERT INTO targets (professor, lab_kind, university, lab, country, region, pathway, notes, created_at,
     updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(target.professor, target.labKind, target.university, target.lab,
@@ -114,6 +126,8 @@ export function updateTarget(id: number, input: unknown, workspace = workspacePa
       university: patch.university === undefined ? current.university : patch.university,
       lab: patch.lab === undefined ? current.lab : patch.lab,
     });
+    const clash = existingTargetId(readTargets(db), fields.professor, id);
+    if (clash !== null) throw new RuleError(`Already a target (${String(clash)}).`);
     if (patch.openings?.clipId !== undefined && patch.openings.clipId !== null) assertOwnClip(db, id, patch.openings.clipId);
     if (patch.deadline !== undefined && patch.deadline !== null) assertOwnClip(db, id, patch.deadline.clipId);
     const row = targetRowSchema.parse(db.prepare('SELECT * FROM targets WHERE id = ?').get(id));
