@@ -159,6 +159,22 @@ async function update(workspace: string, requestedPort: number | undefined): Pro
   return { updated: true, from: from.slice(0, 7), to: to.slice(0, 7), app: started,
     ...(from === to ? { note: 'Completed an earlier interrupted update.' } : {}) };
 }
+function parseJson(input: string): unknown {
+  if (input.trim() === '') throw new Error('Supply JSON on stdin.');
+  try {
+    const parsed: unknown = JSON.parse(input);
+    return parsed;
+  } catch {
+    throw new Error('Stdin was not valid JSON.');
+  }
+}
+function cliError(error: unknown): string {
+  if (error instanceof z.ZodError) {
+    return error.issues.map((issue) =>
+      (issue.path.length === 0 ? issue.message : `${issue.path.join('.')}: ${issue.message}`)).join(' ');
+  }
+  return error instanceof Error ? error.message : 'Unknown failure';
+}
 async function inputFromStdin(): Promise<unknown> {
   if (process.stdin.isTTY) throw new Error('Supply JSON on stdin.');
   process.stdin.setEncoding('utf8');
@@ -167,16 +183,14 @@ async function inputFromStdin(): Promise<unknown> {
     input += z.string().parse(chunk);
     if (Buffer.byteLength(input) > 65_536) throw new Error('Input exceeds 64 KiB.');
   }
-  const parsed: unknown = JSON.parse(input);
-  return parsed;
+  return parseJson(input);
 }
 async function optionalInput(): Promise<unknown> {
   if (process.stdin.isTTY) return {};
   process.stdin.setEncoding('utf8');
   let input = '';
   for await (const chunk of process.stdin) input += z.string().parse(chunk);
-  const parsed: unknown = input.trim() === '' ? {} : JSON.parse(input);
-  return parsed;
+  return input.trim() === '' ? {} : parseJson(input);
 }
 function roleContext(workspace: string, name: RoleName, values: Partial<Record<'target' | 'track' | 'arm' | 'count', string>>): RoleContext {
   const detail = values.track === undefined ? null : getTrackDetail(workspace, targetIdSchema.parse(values.track));
@@ -213,7 +227,14 @@ async function main(): Promise<unknown> {
     allowPositionals: true,
     strict: true,
   });
-  const command = z.enum([...coreCommands, ...researchCommands]).parse(args.positionals[0]);
+  const commandName = args.positionals[0];
+  const parsedCommand = z.enum([...coreCommands, ...researchCommands]).safeParse(commandName);
+  if (!parsedCommand.success) {
+    throw new Error(commandName === undefined
+      ? 'Name a command. Run `npm run coresearch -- guide` for the workflow.'
+      : `Unknown command “${commandName.length > 40 ? `${commandName.slice(0, 40)}…` : commandName}”. Run \`npm run coresearch -- guide\` for the workflow.`);
+  }
+  const command = parsedCommand.data;
   if (args.positionals.length !== (command === 'role' ? 2 : 1)) {
     throw new Error(command === 'role' ? `Name one role: ${roleNames.join(', ')}.` : 'Provide exactly one command.');
   }
@@ -322,6 +343,6 @@ try {
   const result = await main();
   process.stdout.write(typeof result === 'string' ? `${result}\n` : `${JSON.stringify(result, null, 2)}\n`);
 } catch (error) {
-  process.stderr.write(`${JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown failure' })}\n`);
+  process.stderr.write(`${JSON.stringify({ error: cliError(error) })}\n`);
   process.exitCode = 1;
 }
