@@ -5,7 +5,7 @@ import { listTargets } from '../../../lib/targets.ts';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
-export const metadata: Metadata = { title: 'Add target' };
+export const metadata: Metadata = { title: 'Add a professor' };
 
 export default function Page(): ReactElement {
   return <NewTargetView initialTargets={listTargets()} />;

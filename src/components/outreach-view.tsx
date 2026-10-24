@@ -324,7 +324,7 @@ function OutreachTable({ rows, kinds }: Readonly<{ rows: readonly OutreachRow[];
   const [list, setList] = useState<ListFilter>(rows.some(finalList) ? 'final' : 'all');
   const [status, setStatus] = useState<StatusFilter>('all');
   const [open, setOpen] = useState<readonly number[]>([]);
-  if (rows.length === 0) return <Text as="p" size="2" color="gray" mt="3">No professors yet. Import your list below, or add one.</Text>;
+  if (rows.length === 0) return <Text as="p" size="2" color="gray" mt="3">No professors yet. Import your list below, or <a href="/targets/new">add one</a>.</Text>;
   const sortKeys = ['rank', ...kinds.map((kind) => kind.key), 'deadline', 'professor'];
   const sortLabels: Record<string, string> = { rank: 'Rank', deadline: 'Deadline', professor: 'Professor',
     ...Object.fromEntries(kinds.map((kind) => [kind.key, kind.label])) };
