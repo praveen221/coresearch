@@ -88,7 +88,7 @@ void test('local app preserves data, reuses its instance, denies writes and fore
     assert.equal((await request(`${base}/ideas`)).status, 200);
     assert.deepEqual(await (await request(`${base}/api/ideas`)).json(), []);
     assert.deepEqual(await (await request(`${base}/api/targets/1/research`)).json(),
-      { sources: [], tracks: [], clips: [], author: null, settings: { trackLimit: 2 }, running: 0 });
+      { sources: [], tracks: [], clips: [], author: null, settings: { trackLimit: 2 }, running: 0, batches: [], seeds: [], categories: [] });
     assert.equal((await request(`${base}/api/targets/999/research`)).status, 404);
     assert.equal((await request(`${base}/targets/1/tracks/99`)).status, 404);
     assert.equal((await request(`${base}/api/files?path=${encodeURIComponent('../coresearch.sqlite')}`)).status, 404);
