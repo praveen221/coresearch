@@ -20,6 +20,17 @@ const paper: Work = {
   citedBy: 0,
 };
 
+void test('an empty workspace asks for a CV and a professor, not a ranking', () => {
+  const workspace = mkdtempSync(join(tmpdir(), 'coresearch-overview-empty-'));
+  try {
+    const overview = getOverview(workspace);
+    assert.deepEqual(overview.steps.map((step) => step.href), ['/profile', '/targets/new']);
+    assert.deepEqual([overview.proposals, overview.pitches], [[], []]);
+  } finally {
+    rmSync(workspace, { recursive: true, force: true });
+  }
+});
+
 void test('the overview gives each professor a path, a stage, and a dated next step; an export carries it to anyone', async () => {
   const workspace = mkdtempSync(join(tmpdir(), 'coresearch-overview-'));
   try {
