@@ -24,12 +24,14 @@ void test('CLI accepts stdin updates, survives separate invocations, rejects mal
     const result = profileSchema.parse(JSON.parse(saved.stdout));
     assert.equal(result.name, 'Example Student');
     assert.deepEqual(result.interests, ['Voice agents']);
-    assert.equal(run('profile:update', '{bad json').status, 1);
-    assert.equal(run('profile:update', JSON.stringify({ unexpected: true })).status, 1);
+    assert.match(run('profile:update', '{bad json').stderr, /Stdin was not valid JSON/);
+    assert.match(run('profile:update', '').stderr, /Supply JSON on stdin/);
+    assert.match(run('profile:update', JSON.stringify({ unexpected: true })).stderr, /unexpected/);
     const read = run('profile:get');
     assert.equal(read.status, 0, read.stderr);
     assert.deepEqual(profileSchema.parse(JSON.parse(read.stdout)), result);
-    assert.equal(run('unknown-command').status, 1);
+    assert.match(run('unknown-command').stderr, /Unknown command/);
+    assert.doesNotMatch(run('unknown-command').stderr, /profile:schema/);
     const schema = run('profile:schema');
     assert.equal(schema.status, 0, schema.stderr);
     const fields = z.object({ properties: z.record(z.string(), z.unknown()), additionalProperties: z.literal(false) })
