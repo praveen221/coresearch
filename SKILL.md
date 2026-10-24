@@ -5,7 +5,7 @@ description: Help a prospective PhD student find the right professors and a rese
 
 # Coresearch
 
-Requires a local agent with filesystem and shell access, Node.js 24.14+ (24.x), npm, and localhost server support. First installation requires network access. Works in Claude Code (terminal, desktop app, IDE extensions), Codex, Cursor, and other agents that can run commands and keep a local server running; not in browser-only chat.
+Requires a local agent with filesystem and shell access, Node.js 22+ (22.x), npm, and localhost server support. First installation requires network access. Works in Claude Code (terminal, desktop app, IDE extensions), Codex, Cursor, and other agents that can run commands and keep a local server running; not in browser-only chat.
 
 Run commands from this skill's directory, located relative to this `SKILL.md`; never assume the caller's current directory is the package. All agents use the same commands and application.
 

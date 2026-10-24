@@ -6,7 +6,7 @@ Website: [praveen221.github.io/coresearch](https://praveen221.github.io/coresear
 
 ## Install
 
-Requires [Node.js 24](https://nodejs.org) (24.14 or newer), Git, and an AI agent that can run commands on your computer: Claude Code (terminal, desktop app, or IDE), Codex, Cursor, or similar.
+Requires [Node.js 22](https://nodejs.org) (22.0 or newer), Git, and an AI agent that can run commands on your computer: Claude Code (terminal, desktop app, or IDE), Codex, Cursor, or similar.
 
 Claude Code: paste this into a session.
 
