@@ -4,7 +4,7 @@ import { RuleError } from './errors.ts';
 import { importInputSchema } from './outreach-schema.ts';
 import type { ListPreview } from './outreach-schema.ts';
 import type { Link, LinkKind, Region, Target } from './target-schema.ts';
-import { insertTarget, readTargets } from './targets.ts';
+import { insertTarget, personKey, readTargets } from './targets.ts';
 
 export function parseCsv(text: string): string[][] {
   const rows: string[][] = [];
@@ -84,12 +84,6 @@ export function guessRegion(urls: readonly string[], university: string | null, 
   }
   if (university !== null && /\b(oxford|cambridge|london|edinburgh|manchester|glasgow|bristol|warwick|ucl)\b/i.test(university)) return 'uk';
   return null;
-}
-
-function personKey(name: string): string {
-  return name.normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase()
-    .replace(/\b(prof|professor|dr|mr|ms|mrs)\b\.?/g, ' ').replace(/[^a-z ]/g, ' ').split(/\s+/).filter((part) => part !== '')
-    .filter((_, index, parts) => index === 0 || index === parts.length - 1).join(' ');
 }
 
 function findExisting(targets: readonly Target[], professor: string): number | null {

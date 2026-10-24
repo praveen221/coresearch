@@ -4,9 +4,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { test } from 'node:test';
-import { ConflictError, NotFoundError } from '../src/lib/errors.ts';
+import { ConflictError, NotFoundError, RuleError } from '../src/lib/errors.ts';
 import { getProfile, updateProfile } from '../src/lib/profile.ts';
-import { addTarget, getTarget, listTargets, removeTarget, updateTarget } from '../src/lib/targets.ts';
+import { addTarget, getTarget, listTargets, personKey, removeTarget, updateTarget } from '../src/lib/targets.ts';
 
 function fixture(run: (workspace: string) => void): void {
   const workspace = mkdtempSync(join(tmpdir(), 'coresearch-targets-'));
@@ -77,6 +77,23 @@ void test('invalid, conflicting, or stale updates change nothing', () => {
     const elsewhere = updateTarget(loaded.id, { lab: 'Saved by the agent' }, workspace);
     assert.throws(() => updateTarget(loaded.id, { lab: 'Stale edit' }, workspace, { updatedAt: loaded.updatedAt }), ConflictError);
     assert.deepEqual(getTarget(loaded.id, workspace), elsewhere);
+  });
+});
+
+void test('a professor is stored once, matching titles and accents to the same person', () => {
+  fixture((workspace) => {
+    const first = addTarget(universityTarget, workspace);
+    assert.equal(personKey('Prof. Example Professor'), personKey('Example Professor'));
+    assert.throws(() => addTarget({ ...universityTarget, university: 'Other University',
+      links: [{ kind: 'professor', url: 'https://other.example/people/professor' }] }, workspace), RuleError);
+    assert.throws(() => addTarget({ professor: 'Prof. Example Professor', labKind: 'independent', lab: 'Example Institute' },
+      workspace), /Already a target \(1\)/);
+    assert.equal(listTargets(workspace).length, 1);
+    const other = addTarget({ ...universityTarget, professor: 'Other Professor',
+      links: [{ kind: 'professor', url: 'https://example.edu/people/other' }] }, workspace);
+    assert.throws(() => updateTarget(other.id, { professor: 'EXAMPLE PROFESSOR' }, workspace), /Already a target \(1\)/);
+    assert.deepEqual(getTarget(first.id, workspace).professor, first.professor);
+    assert.equal(updateTarget(other.id, { professor: 'Dr Other Professor' }, workspace).professor, 'Dr Other Professor');
   });
 });
 

@@ -69,6 +69,8 @@ void test('CLI adds, reads, updates, and removes targets, and prints both target
     assert.match(run(['role', 'investigator', '--target', id]).stderr, /needs --track/);
     assert.match(run(['role', 'nobody', '--target', id]).stderr, /error/);
     assert.match(run(['role']).stderr, /Name one role/);
+    assert.match(run(['target:add'], JSON.stringify({ professor: 'Example Professor', labKind: 'independent', lab: 'Example Institute' }))
+      .stderr, /Already a target/);
     assert.equal(run(['target:remove', '--id', id]).status, 0);
     assert.equal(run(['target:remove', '--id', id]).status, 1);
   } finally { rmSync(workspace, { recursive: true, force: true }); }
