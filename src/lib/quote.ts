@@ -24,20 +24,24 @@ function normalize(input: string): Normalized {
   const map: number[] = [];
   const ends: number[] = [];
   let space = true;
-  for (let index = 0; index < input.length; index += 1) {
-    const char = input.charAt(index);
+  for (let index = 0; index < input.length;) {
+    const code = input.codePointAt(index);
+    if (code === undefined) break;
+    const char = String.fromCodePoint(code);
+    const width = char.length;
     if (/[-\u00ad\u2010\u2011\u2012\u2013\u2014\u2015\u2212]/.test(char)) {
-      const rest = /^-?\s*/.exec(input.slice(index + 1));
-      if (rest !== null) index += rest[0].length;
+      const rest = /^-?\s*/.exec(input.slice(index + width));
+      index += width + (rest?.[0].length ?? 0);
       continue;
     }
     const folded = char.normalize('NFKC').toLowerCase()
       .replace(/[\u2018\u2019\u201a\u201b\u2032`]/g, '\'').replace(/[\u201c\u201d\u201e\u2033]/g, '"');
     for (const part of folded) {
       if (/\s/.test(part)) {
-        if (!space) { text += ' '; map.push(index); ends.push(index + 1); space = true; }
-      } else { text += part; map.push(index); ends.push(index + 1); space = false; }
+        if (!space) { text += ' '; map.push(index); ends.push(index + width); space = true; }
+      } else { text += part; map.push(index); ends.push(index + width); space = false; }
     }
+    index += width;
   }
   if (text.endsWith(' ')) { text = text.slice(0, -1); map.pop(); ends.pop(); }
   return foldLigatures({ text, map, ends });
