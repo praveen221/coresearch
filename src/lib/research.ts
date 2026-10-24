@@ -433,10 +433,10 @@ export function addTrack(workspace: string, input: unknown): Track {
       throw new NotFoundError(`No idea with id ${String(track.ideaId)}.`);
     }
     if (track.origin === 'agent' && track.kind === 'question') {
-      const pending = z.array(z.object({ id: z.number() })).parse(db.prepare(`SELECT id FROM ideas WHERE id NOT IN
+      const pending = z.array(z.object({ id: z.number(), text: z.string() })).parse(db.prepare(`SELECT id, text FROM ideas WHERE id NOT IN
         (SELECT idea_id FROM tracks WHERE idea_id IS NOT NULL AND target_id = ?)`).all(track.targetId));
       if (pending.length > 0) {
-        throw new RuleError(`Open tracks for the student’s ideas first (idea ${pending.map((idea) => String(idea.id)).join(', ')}).`);
+        throw new RuleError(`Open tracks for the student's ideas first: ${pending.map((idea) => `idea ${String(idea.id)} ("${idea.text}")`).join(', ')}. Create a track with ideaId set to the idea's id, or remove the idea with idea:remove if no longer needed.`);
       }
       const { trackLimit } = readSettings(db);
       if (countTracks(db, 'proposed') >= trackLimit) {
