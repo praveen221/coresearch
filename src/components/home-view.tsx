@@ -29,6 +29,10 @@ function Summary({ overview }: Readonly<{ overview: Overview }>): ReactElement {
   const pitches = overview.pitches.filter((item) => item.finalList);
   const listed = proposals.length + pitches.length > 0;
   const shown = listed ? [...proposals, ...pitches] : [...overview.proposals, ...overview.pitches];
+  if (shown.length === 0) {
+    return <Text as="p" size="3" mt="2">You have not added a professor yet. <a href="/targets/new">Add one</a>, import a list on{' '}
+      <a href="/outreach">Professors</a>, or tell your agent.</Text>;
+  }
   const next = shown.filter((item) => item.daysLeft !== null && item.daysLeft >= 0)
     .sort((a, b) => (a.daysLeft ?? 0) - (b.daysLeft ?? 0))[0];
   return <Text as="p" size="3" mt="2">
@@ -106,7 +110,8 @@ export function HomeView({ initialTargets, initialOverview }: Readonly<{ initial
       <Heading as="h2" size="4" id="proposals-heading">Research proposals · UK and Europe</Heading>
       <Text as="p" size="2" color="gray" mt="1">For these you submit a research proposal. Coresearch reads the professor’s work, tests research directions
         with you, and shortlists the strongest. You choose one and write the proposal in your own words.</Text>
-      {proposals.length === 0 ? <Text as="p" size="2" mt="3">None yet.</Text>
+      {proposals.length === 0 ? <Text as="p" size="2" mt="3">None yet. <a href="/targets/new">Add a professor</a> whose programme wants a
+        research proposal.</Text>
         : proposals.map((item) => <ProposalCard key={item.targetId} item={item} today={overview.today} />)}
       {otherProposals === 0 ? null : <Text as="p" size="2" color="gray" mt="3">{plural(otherProposals, 'more professor')} on your full list
         {otherProposals === 1 ? ' takes' : ' take'} this path; see <a href="/outreach">Professors</a>.</Text>}
@@ -115,7 +120,8 @@ export function HomeView({ initialTargets, initialOverview }: Readonly<{ initial
       <Heading as="h2" size="4" id="pitches-heading">Pitches · US and elsewhere</Heading>
       <Text as="p" size="2" color="gray" mt="1">For these you write to the professor before applying. Coresearch drafts a short pitch from your CV and their
         papers; you edit it and send it yourself. Coresearch never contacts anyone.</Text>
-      {pitches.length === 0 ? <Text as="p" size="2" mt="3">None yet.</Text> : <PitchTable items={pitches} today={overview.today} />}
+      {pitches.length === 0 ? <Text as="p" size="2" mt="3">None yet. <a href="/targets/new">Add a professor</a> to pitch, or import a list
+        on <a href="/outreach">Professors</a>.</Text> : <PitchTable items={pitches} today={overview.today} />}
       {otherPitches === 0 ? null : <Text as="p" size="2" color="gray" mt="3">{plural(otherPitches, 'more professor')} on your full list; see all of them,
         ranked by fit, on <a href="/outreach">Professors</a>.</Text>}
     </section>

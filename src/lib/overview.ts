@@ -107,7 +107,11 @@ function steps(proposals: readonly ProposalItem[], pitches: readonly PitchItem[]
   const href = (id: number): string => `/targets/${String(id)}`;
   const list: Step[] = [];
   if (!cv) list.push({ date: null, professor: null, text: 'Upload your CV, so pitches and fit scores can quote it', href: '/profile', targetId: null, finalList: true });
-  if (!scored) list.push({ date: null, professor: null, text: 'Ask your agent to rank your professors by fit', href: '/outreach', targetId: null, finalList: true });
+  if (proposals.length + pitches.length === 0) {
+    list.push({ date: null, professor: null, text: 'Add a professor you want to work with', href: '/targets/new', targetId: null, finalList: true });
+  } else if (!scored) {
+    list.push({ date: null, professor: null, text: 'Ask your agent to rank your professors by fit', href: '/outreach', targetId: null, finalList: true });
+  }
   for (const item of proposals) {
     const text = item.directions.waiting > 0 ? actions.waiting : item.directions.clear > 0 ? actions.clear : item.directions.tested === 0 ? actions.start : null;
     if (text !== null) {
