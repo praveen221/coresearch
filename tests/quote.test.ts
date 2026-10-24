@@ -32,6 +32,15 @@ void test('extraction artefacts do not hide an honest quotation', () => {
   }
 });
 
+void test('an ASCII letter matches a PDF mathematical italic letter', () => {
+  const pages = ['Our analysis of historical and modern studies (\u{1D441} = 23) sets the stage.'];
+  const found = locateQuote(pages, 'modern studies (N = 23) sets the stage', true);
+  assert.ok(found !== null);
+  assert.equal(found.page, 1);
+  assert.equal(found.quote.includes('23'), true);
+  assert.equal(locateQuote(pages, 'studies (n = 23)', true)?.page, 1);
+});
+
 void test('a quotation continuing onto the next page is attributed to its first page', () => {
   const found = locateQuote(pages, 'first-person phrasing. Participants listened', true);
   assert.equal(found?.page, 1);
