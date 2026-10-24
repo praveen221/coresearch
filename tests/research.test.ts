@@ -13,7 +13,8 @@ import {
 import type { Work } from '../src/lib/openalex.ts';
 import {
   addClip, addEvent, addIdea, addTrack, approveTrack, assessSource, closeBatch, decideTrack, getResearch, getTrackDetail, linkSource,
-  listBatches, listIdeas, getOverview, removeClip, removeIdea, removeTrack, scoreTrack, setBrief, startBatch, updateSettings, updateTrack,
+  listBatches, listIdeas, listTracks, getOverview, removeClip, removeIdea, removeTrack, scoreTrack, setBrief, startBatch, updateSettings,
+  updateTrack,
 } from '../src/lib/research.ts';
 import { clearsBar } from '../src/lib/research-schema.ts';
 import { addSeed, listSeeds, seedStrength } from '../src/lib/seeds.ts';
@@ -333,6 +334,18 @@ void test('the library is organised into categories with one level of subcategor
     assert.deepEqual(categorizeSource(workspace, paper.id, { categoryIds: [lab.id, voice.id] }).map((item) => item.name).sort(), ['The lab', 'Voice']);
     assert.deepEqual(categorizeSource(workspace, paper.id, { categoryIds: [voice.id] }).map((item) => item.id), [voice.id]);
     assert.deepEqual(getResearch(workspace, targetId).categories.find((item) => item.id === voice.id)?.sourceIds, [paper.id]);
+    return Promise.resolve();
+  });
+});
+
+void test('listing tracks, batches, or seeds for a missing target is reported', async () => {
+  await fixture((workspace, targetId) => {
+    assert.deepEqual(listTracks(workspace, targetId), []);
+    assert.throws(() => listTracks(workspace, 99), /No target with id 99/);
+    assert.throws(() => listBatches(workspace, 99), /No target with id 99/);
+    assert.throws(() => listSeeds(workspace, 99), /No target with id 99/);
+    assert.throws(() => getResearch(workspace, 99), /No target with id 99/);
+    assert.throws(() => getOverview(workspace, 99), /No target with id 99/);
     return Promise.resolve();
   });
 });

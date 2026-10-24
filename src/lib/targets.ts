@@ -66,6 +66,12 @@ function readOne(db: DatabaseSync, id: number): Target {
   return target;
 }
 
+export function requireTarget(db: DatabaseSync, id: number): void {
+  if (db.prepare('SELECT 1 FROM targets WHERE id = ?').get(id) === undefined) {
+    throw new NotFoundError(`No target with id ${String(id)}.`);
+  }
+}
+
 function saveLinks(db: DatabaseSync, id: number, links: readonly Link[]): void {
   for (const link of links) {
     db.prepare(`INSERT INTO target_links (target_id, kind, url) VALUES (?, ?, ?)

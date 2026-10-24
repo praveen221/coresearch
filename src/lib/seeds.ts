@@ -4,6 +4,7 @@ import { transaction, withDatabase } from './database.ts';
 import { NotFoundError, RuleError } from './errors.ts';
 import { readSources } from './library.ts';
 import { seedInputSchema, seedPatchSchema, seedSchema, trackScoreSchema } from './research-schema.ts';
+import { requireTarget } from './targets.ts';
 import type { Seed, SeedKind, Source } from './research-schema.ts';
 
 export const seedRecencyFloor = 2022;
@@ -154,8 +155,11 @@ export function updateSeed(workspace: string, id: number, input: unknown): Seed 
 }
 
 export function listSeeds(workspace: string, targetId: number): Seed[] {
-  return withDatabase(workspace, (db) => transaction(db, () => readSeeds(db, targetId)
-    .sort((a, b) => Number(b.status === 'open') - Number(a.status === 'open') || b.strength - a.strength)));
+  return withDatabase(workspace, (db) => transaction(db, () => {
+    requireTarget(db, targetId);
+    return readSeeds(db, targetId)
+      .sort((a, b) => Number(b.status === 'open') - Number(a.status === 'open') || b.strength - a.strength);
+  }));
 }
 
 export function assertSeeds(db: DatabaseSync, targetId: number, seedIds: readonly number[]): void {

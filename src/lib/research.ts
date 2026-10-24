@@ -15,6 +15,7 @@ import {
 } from './research-schema.ts';
 import type { Batch, Clip, Idea, Research, Settings, Source, Track, TrackDetail } from './research-schema.ts';
 import { assertSeeds, markSeedsUsed, readSeeds } from './seeds.ts';
+import { requireTarget } from './targets.ts';
 
 const now = (): string => new Date().toISOString();
 
@@ -130,7 +131,10 @@ function readBatches(db: DatabaseSync, targetId: number): Batch[] {
 }
 
 export function listBatches(workspace: string, targetId: number): Batch[] {
-  return withDatabase(workspace, (db) => transaction(db, () => readBatches(db, targetId)));
+  return withDatabase(workspace, (db) => transaction(db, () => {
+    requireTarget(db, targetId);
+    return readBatches(db, targetId);
+  }));
 }
 
 export function startBatch(workspace: string, targetId: number, input: unknown): Batch {
@@ -413,7 +417,10 @@ export function scoreTrack(workspace: string, id: number, input: unknown): Track
 }
 
 export function listTracks(workspace: string, targetId: number): Track[] {
-  return withDatabase(workspace, (db) => transaction(db, () => readTracks(db, 'WHERE target_id = ? ORDER BY id', targetId)));
+  return withDatabase(workspace, (db) => transaction(db, () => {
+    requireTarget(db, targetId);
+    return readTracks(db, 'WHERE target_id = ? ORDER BY id', targetId);
+  }));
 }
 
 export function getTrackDetail(workspace: string, id: number): TrackDetail {
@@ -480,7 +487,9 @@ function assertStartable(db: DatabaseSync, track: Track): void {
 }
 
 export function getOverview(workspace: string, targetId: number): unknown {
-  return withDatabase(workspace, (db) => transaction(db, () => readTracks(db, 'WHERE target_id = ? ORDER BY id', targetId).map((track) => {
+  return withDatabase(workspace, (db) => transaction(db, () => {
+    requireTarget(db, targetId);
+    return readTracks(db, 'WHERE target_id = ? ORDER BY id', targetId).map((track) => {
     const detail = readDetail(db, track.id);
     return {
       id: track.id, origin: track.origin, kind: track.kind, status: track.status, title: track.title, question: track.question,
@@ -491,7 +500,8 @@ export function getOverview(workspace: string, targetId: number): unknown {
       papers: detail.sources.map((source) => `${String(source.id)}: ${cite(source)} — ${source.title.slice(0, 80)}`),
       studentSaid: detail.events.filter((event) => event.actor === 'student').map((event) => event.text),
     };
-  })));
+    });
+  }));
 }
 
 export function approveTrack(workspace: string, id: number, input: unknown): Track {
@@ -721,6 +731,7 @@ export function listClips(workspace: string, filter: { targetId?: number; source
     if (filter.trackId !== undefined) return readClips(db, 'WHERE track_id = ?', filter.trackId);
     if (filter.sourceId !== undefined) return readClips(db, 'WHERE source_id = ?', filter.sourceId);
     if (filter.targetId !== undefined) {
+      requireTarget(db, filter.targetId);
       return readClips(db, 'JOIN sources ON sources.id = clips.source_id WHERE sources.target_id = ?', filter.targetId);
     }
     throw new RuleError('Filter clips by target, source, or track.');
@@ -728,7 +739,9 @@ export function listClips(workspace: string, filter: { targetId?: number; source
 }
 
 export function getResearch(workspace: string, targetId: number): Research {
-  return withDatabase(workspace, (db) => transaction(db, () => ({
+  return withDatabase(workspace, (db) => transaction(db, () => {
+    requireTarget(db, targetId);
+    return {
     sources: readSources(db, 'WHERE target_id = ? ORDER BY kind, year DESC, id', targetId),
     tracks: readTracks(db, 'WHERE target_id = ? ORDER BY id', targetId),
     clips: readClips(db, 'JOIN sources ON sources.id = clips.source_id WHERE sources.target_id = ?', targetId),
@@ -738,5 +751,6 @@ export function getResearch(workspace: string, targetId: number): Research {
     batches: readBatches(db, targetId),
     seeds: readSeeds(db, targetId).sort((a, b) => Number(b.status === 'open') - Number(a.status === 'open') || b.strength - a.strength),
     categories: readCategories(db, targetId),
-  })));
+    };
+  }));
 }

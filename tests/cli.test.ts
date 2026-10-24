@@ -92,6 +92,9 @@ void test('CLI saves ideas, prints the research guide and schemas, and reports r
     assert.deepEqual(Object.keys(schemas), ['idea:add', 'paper:document', 'source:status', 'source:future', 'source:categorize',
       'category:add', 'paper:request', 'clip:add', 'seed:add', 'seed:update', 'batch:start', 'batch:close', 'track:add', 'track:approve',
       'track:assess', 'track:brief', 'track:score', 'track:update', 'track:link', 'track:log', 'settings:update']);
+    assert.match(run(['track:list', '--target', '7']).stderr, /No target with id 7/);
+    assert.match(run(['batch:list', '--target', '7']).stderr, /No target with id 7/);
+    assert.match(run(['seed:list', '--target', '7']).stderr, /No target with id 7/);
     assert.match(run(['track:add'], JSON.stringify({ targetId: 7, origin: 'agent', title: 'T', question: 'Q?', rationale: 'R.' })).stderr,
       /No target with id 7/);
     assert.match(run(['source:get', '--id', '3']).stderr, /No source with id 3/);
