@@ -4,6 +4,7 @@ import { transaction, withDatabase } from './database.ts';
 import { NotFoundError, RuleError } from './errors.ts';
 import { categoryInputSchema, categorySchema, sourceCategoriesSchema } from './research-schema.ts';
 import type { Category } from './research-schema.ts';
+import { requireTarget } from './targets.ts';
 
 const categoryRow = z.object({
   id: z.number(), target_id: z.number(), parent_id: z.number().nullable(), kind: z.string(), name: z.string(),
@@ -21,7 +22,10 @@ export function readCategories(db: DatabaseSync, targetId: number): Category[] {
 }
 
 export function listCategories(workspace: string, targetId: number): Category[] {
-  return withDatabase(workspace, (db) => transaction(db, () => readCategories(db, targetId)));
+  return withDatabase(workspace, (db) => transaction(db, () => {
+    requireTarget(db, targetId);
+    return readCategories(db, targetId);
+  }));
 }
 
 export function addCategory(workspace: string, input: unknown): Category {
