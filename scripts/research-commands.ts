@@ -114,7 +114,16 @@ export async function runResearch(command: ResearchCommand, workspace: string, v
     }
     case 'source:status': return setSourceStatus(workspace, number(values, 'id'), await input());
     case 'source:remove': return removeSource(workspace, number(values, 'id'));
-    case 'source:future': return markFutureScanned(workspace, number(values, 'id'), await input());
+    case 'source:future': {
+      const rawInput = await input();
+      let parsed: unknown;
+      try {
+        parsed = typeof rawInput === 'string' && rawInput.trim() === '' ? { note: 'Scanned' } : rawInput;
+      } catch {
+        parsed = { note: 'Scanned' };
+      }
+      return markFutureScanned(workspace, number(values, 'id'), parsed);
+    }
     case 'source:categorize': return categorizeSource(workspace, number(values, 'id'), await input());
     case 'category:list': return listCategories(workspace, number(values, 'target'));
     case 'category:add': return addCategory(workspace, await input());
